@@ -1,12 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "export",
-  basePath: "/special-graphics",
+  output: "export",                // Enables static HTML export
+  basePath: "/special-graphics-official", // GitHub Pages repo name
   images: {
-    unoptimized: true,
+    unoptimized: true,             // GitHub Pages does not support Next.js image optimization
   },
-  /* config options here */
 };
 
 export default nextConfig;
