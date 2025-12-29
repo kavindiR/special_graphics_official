@@ -2,15 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import Image from "next/image";
-import heroLeft from "../../public/hero-left.avif";
-import heroRight from "../../public/hero-right.avif";
 
 export default function Hero() {
     const [currentIndex, setCurrentIndex] = useState(0);
 
     const images = [
-        { src: heroLeft, position: "object-left" },
-        { src: heroRight, position: "object-right" }
+        { src: "/hero-left.avif", position: "object-left" },
+        { src: "/hero-right.avif", position: "object-right" }
     ];
 
     useEffect(() => {
@@ -37,6 +35,7 @@ export default function Hero() {
                             fill
                             className={`object-cover ${image.position}`}
                             priority={index === 0}
+                            sizes="100vw"
                         />
                         {/* Gradient Mask to fade into center (optional, but keep for style consistency if desired, or just dark overlay) */}
                         <div className="absolute inset-0 bg-black/40"></div>

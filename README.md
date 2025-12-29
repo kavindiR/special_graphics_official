@@ -1,39 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Special Graphics - World Class Designs
 
-## Getting Started
+A modern Next.js application for connecting businesses with creative design experts. Features a beautiful, responsive UI with support for multiple deployment platforms.
 
-First, run the development server:
+## 🚀 Features
+
+- **Modern Design**: Beautiful, responsive UI with dark theme hero sections
+- **Multiple Pages**: Home, Categories, How It Works, Find Designer, Auth, Inspirations, Submit Files, Winner Form
+- **Image Optimization**: Optimized images for fast loading
+- **Multi-Platform Support**: Works on localhost, GitHub Pages, and Vercel
+
+## 📋 Pages
+
+- `/` - Home page with hero section and testimonials
+- `/categories` - Design categories showcase
+- `/how-it-works` - Process explanation
+- `/find-designer` - Designer search and profiles
+- `/auth` - Authentication (Sign In / Sign Up)
+- `/inspirations` - Design inspirations gallery
+- `/submit-files` - File submission page
+- `/winner-form` - Winner form submission
+
+## 🛠️ Getting Started
+
+### Prerequisites
+
+- Node.js 20 or higher
+- npm, yarn, pnpm, or bun
+
+### Installation
+
+```bash
+# Install dependencies
+npm install
+```
+
+### Development
+
+```bash
+# Run development server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) to see your application.
+
+## 🚢 Deployment
+
+This project is configured to work on **three platforms**:
+
+### 1. Localhost (Development)
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-``` 
+```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Vercel (Recommended for Production)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+#### Automatic Deployment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Push your code to GitHub, GitLab, or Bitbucket**
 
-## Learn More
+2. **Import your repository to Vercel:**
+   - Go to [vercel.com](https://vercel.com)
+   - Click **Add New Project**
+   - Import your Git repository
+   - Vercel will automatically detect Next.js and configure the build settings
 
-To learn more about Next.js, take a look at the following resources:
+3. **Deploy:**
+   - Click **Deploy** and Vercel will build and deploy your application
+   - Your app will be live at a `*.vercel.app` URL
+   - Every push to your main branch will trigger automatic deployments
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+#### Manual Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# Install Vercel CLI
+npm i -g vercel
 
-## Deploy on GitHub Pages
+# Login to Vercel
+vercel login
 
-This project is configured for automatic deployment to GitHub Pages.
+# Deploy to production
+vercel --prod
+```
 
-### Automatic Deployment (Recommended)
+#### Vercel Features
+
+- ✅ **Automatic HTTPS** - SSL certificates are automatically provisioned
+- ✅ **Image Optimization** - Next.js Image component is fully optimized
+- ✅ **Edge Network** - Global CDN for fast content delivery
+- ✅ **Preview Deployments** - Every pull request gets a preview URL
+- ✅ **Analytics** - Built-in performance monitoring
+
+### 3. GitHub Pages
+
+#### Automatic Deployment (Recommended)
 
 1. **Enable GitHub Pages in your repository:**
    - Go to your repository on GitHub
@@ -41,35 +101,116 @@ This project is configured for automatic deployment to GitHub Pages.
    - Under **Source**, select **GitHub Actions**
    - The workflow will automatically deploy when you push to the `main` branch
 
-2. **Manual Deployment:**
-   ```bash
-   npm run build
-   npm run deploy
-   ```
+2. **Repository Name:**
+   - Make sure your repository name is `special-graphics-official`
+   - If different, update `basePath` in `next.config.ts`
 
-### Configuration
+#### Manual Deployment
 
-- **Repository Name:** `special-graphics-official`
-- **Base Path:** `/special-graphics-official` (configured in `next.config.ts`)
-- **Homepage URL:** `https://kavindiR.github.io/special-graphics-official`
+```bash
+# Build for GitHub Pages
+npm run build:github
 
-### Important Notes
+# The output will be in the 'out' directory
+# You can then deploy the 'out' folder to GitHub Pages
+```
 
-- The project uses static export (`output: "export"` in `next.config.ts`)
-- Images are unoptimized for GitHub Pages compatibility
-- The `out` directory contains the static files for deployment
-- The Accordion component and all other components are properly configured for static export
+#### GitHub Pages Configuration
 
-### Troubleshooting
+- **Base Path**: `/special-graphics-official` (configured in `next.config.ts`)
+- **Build Command**: `npm run build:github`
+- **Output Directory**: `out`
 
-If deployment fails:
-1. Ensure your repository name matches the `basePath` in `next.config.ts`
-2. Check that GitHub Actions has the necessary permissions
-3. Verify the `homepage` field in `package.json` matches your GitHub Pages URL
-4. Make sure you've pushed the workflow file to your repository
+## 📦 Build Scripts
 
-## Deploy on Vercel
+- `npm run dev` - Start development server
+- `npm run build` - Build for Vercel (default)
+- `npm run build:vercel` - Build for Vercel (explicit)
+- `npm run build:github` - Build for GitHub Pages
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🔧 Configuration
 
-Check out the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Environment Variables
+
+- `GITHUB_PAGES=true` - Set when building for GitHub Pages (automatically set by build script)
+
+### Next.js Configuration
+
+The `next.config.ts` automatically detects the deployment target:
+- **Vercel**: Uses standard Next.js with image optimization
+- **GitHub Pages**: Uses static export with basePath and unoptimized images
+
+## 🎨 Tech Stack
+
+- **Framework**: Next.js 16
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS 4
+- **UI Components**: Radix UI
+- **Icons**: Lucide React
+- **Fonts**: Geist, Geist Mono, Great Vibes
+
+## 📁 Project Structure
+
+```
+special-graphics-master/
+├── .github/
+│   └── workflows/
+│       └── deploy-github-pages.yml
+├── public/              # Static assets (images, icons)
+├── src/
+│   ├── app/            # Next.js app router pages
+│   │   ├── auth/
+│   │   ├── categories/
+│   │   ├── find-designer/
+│   │   ├── how-it-works/
+│   │   ├── inspirations/
+│   │   ├── submit-files/
+│   │   ├── winner-form/
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/     # React components
+│   └── lib/           # Utility functions
+├── next.config.ts      # Next.js configuration
+├── vercel.json         # Vercel deployment configuration
+└── package.json
+```
+
+## 🐛 Troubleshooting
+
+### Images Not Loading
+
+- Ensure all images are in the `/public` directory
+- Use string paths like `/image.avif` instead of imports
+- Check that image paths start with `/`
+
+### GitHub Pages Deployment Issues
+
+- Verify repository name matches `basePath` in `next.config.ts`
+- Check GitHub Actions workflow permissions
+- Ensure `GITHUB_PAGES=true` is set during build
+
+### Vercel Deployment Issues
+
+- Verify `vercel.json` configuration
+- Check build logs in Vercel dashboard
+- Ensure all dependencies are in `package.json`
+
+## 📝 Notes
+
+- All images use string paths (e.g., `/hero-left.avif`) for compatibility across all platforms
+- The project automatically detects the deployment target and configures accordingly
+- GitHub Pages uses static export, while Vercel uses standard Next.js features
+
+## 📄 License
+
+This project is private and proprietary.
+
+## 🤝 Support
+
+For issues or questions, please contact the development team.
+
+---
+
+Built with ❤️ using Next.js
