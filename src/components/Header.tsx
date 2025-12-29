@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Menu, X } from 'lucide-react';
 
 // Navigation items configuration
@@ -26,14 +25,10 @@ export default function Header() {
                     {/* Logo (Left Side) */}
                     <div className="flex-shrink-0">
                         <Link href="/" className="block">
-                            <Image
-                                src="/logo.avif"
-                                alt="Special Graphics"
-                                width={180}
-                                height={50}
-                                className="h-10 md:h-12 w-auto object-contain"
-                                priority
-                            />
+                            <span className="text-xl md:text-2xl text-gray-900 tracking-tight">
+                                <span className="font-normal">Special</span>{' '}
+                                <span className="font-bold">Graphics</span>
+                            </span>
                         </Link>
                     </div>
 
@@ -44,11 +39,11 @@ export default function Header() {
                                 <div key={item.label} className="relative">
                                     <Link
                                         href={item.href}
-                                        className="relative text-sm font-medium text-gray-800 hover:text-gray-900 transition-colors duration-200 whitespace-nowrap"
+                                        className="relative text-sm font-medium text-gray-800 hover:text-gray-900 transition-colors duration-200 whitespace-nowrap pt-1"
                                     >
                                         {/* NEW Badge */}
                                         {item.badge && (
-                                            <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-black text-white text-[9px] font-semibold px-1.5 py-0.5 rounded-sm uppercase tracking-wide">
+                                            <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-black text-white text-[9px] font-semibold px-1.5 py-0.5 rounded-sm uppercase tracking-wide">
                                                 {item.badge}
                                             </span>
                                         )}
