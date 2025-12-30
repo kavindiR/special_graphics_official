@@ -48,7 +48,7 @@ export default function Hero() {
 
             {/* Content */}
             <div className="container mx-auto px-4 relative z-10 text-center flex flex-col items-center pt-10 pb-32">
-                <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight drop-shadow-lg">
+                <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight drop-shadow-lg">
                     Start Your Dream Business with <br />
                     <span className="text-white">World Class Designs</span>
                 </h1>

@@ -9,7 +9,7 @@ export default function Footer() {
             <div className="container mx-auto px-4">
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 mb-16 text-sm">
                     {/* Col 1 */}
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-4 ml-12 md:ml-20">
                         <h4 className="font-bold text-base mb-2">Company</h4>
                         <Link href="/contact" className="text-gray-400 hover:text-white transition-colors">Contact</Link>
                         <Link href="/careers" className="text-gray-400 hover:text-white transition-colors">Careers</Link>

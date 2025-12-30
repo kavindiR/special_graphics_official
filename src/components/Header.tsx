@@ -2,16 +2,35 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ChevronDown } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 // Navigation items configuration
-const navItems = [
+interface NavItem {
+    label: string;
+    href?: string;
+    badge?: string;
+    dropdown?: { label: string; href: string }[];
+}
+
+const navItems: NavItem[] = [
     { label: 'How it works', href: '/how-it-works' },
     { label: 'Categories', href: '/categories' },
     { label: 'Find a Designer', href: '/find-designer' },
     { label: 'Special Studio', href: '/studio', badge: 'NEW' },
     { label: 'Courses', href: '/courses' },
-    { label: 'Showcase', href: '/showcase' },
+    { 
+        label: 'Showcase', 
+        dropdown: [
+            { label: 'Inspiration', href: '/showcase' },
+            { label: 'Contest', href: '/contest' }
+        ]
+    },
 ];
 
 export default function Header() {
@@ -37,18 +56,36 @@ export default function Header() {
                         <div className="flex items-center gap-6 xl:gap-8">
                             {navItems.map((item) => (
                                 <div key={item.label} className="relative">
-                                    <Link
-                                        href={item.href}
-                                        className="relative text-sm font-medium text-gray-800 hover:text-gray-900 transition-colors duration-200 whitespace-nowrap pt-1"
-                                    >
-                                        {/* NEW Badge */}
-                                        {item.badge && (
-                                            <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-black text-white text-[9px] font-semibold px-1.5 py-0.5 rounded-sm uppercase tracking-wide">
-                                                {item.badge}
-                                            </span>
-                                        )}
-                                        {item.label}
-                                    </Link>
+                                    {item.dropdown ? (
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger className="relative text-sm font-medium text-gray-800 hover:text-gray-900 transition-colors duration-200 whitespace-nowrap pt-1 flex items-center gap-1 outline-none">
+                                                {item.label}
+                                                <ChevronDown className="w-4 h-4" />
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="start" className="min-w-[160px]">
+                                                {item.dropdown.map((subItem) => (
+                                                    <DropdownMenuItem key={subItem.label} asChild>
+                                                        <Link href={subItem.href} className="cursor-pointer">
+                                                            {subItem.label}
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                ))}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    ) : (
+                                        <Link
+                                            href={item.href || '#'}
+                                            className="relative text-sm font-medium text-gray-800 hover:text-gray-900 transition-colors duration-200 whitespace-nowrap pt-1"
+                                        >
+                                            {/* NEW Badge */}
+                                            {item.badge && (
+                                                <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-black text-white text-[9px] font-semibold px-1.5 py-0.5 rounded-sm uppercase tracking-wide">
+                                                    {item.badge}
+                                                </span>
+                                            )}
+                                            {item.label}
+                                        </Link>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -95,19 +132,38 @@ export default function Header() {
                 >
                     <div className="border-t border-gray-100 py-4 space-y-1">
                         {navItems.map((item) => (
-                            <Link
-                                key={item.label}
-                                href={item.href}
-                                className="flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
-                                onClick={() => setMobileMenuOpen(false)}
-                            >
-                                <span>{item.label}</span>
-                                {item.badge && (
-                                    <span className="bg-black text-white text-[9px] font-semibold px-1.5 py-0.5 rounded-sm uppercase tracking-wide">
-                                        {item.badge}
-                                    </span>
+                            <div key={item.label}>
+                                {item.dropdown ? (
+                                    <div className="px-4 py-3">
+                                        <div className="text-sm font-medium text-gray-700 mb-2">{item.label}</div>
+                                        <div className="pl-4 space-y-1">
+                                            {item.dropdown.map((subItem) => (
+                                                <Link
+                                                    key={subItem.label}
+                                                    href={subItem.href}
+                                                    className="block px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
+                                                    onClick={() => setMobileMenuOpen(false)}
+                                                >
+                                                    {subItem.label}
+                                                </Link>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <Link
+                                        href={item.href || '#'}
+                                        className="flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                    >
+                                        <span>{item.label}</span>
+                                        {item.badge && (
+                                            <span className="bg-black text-white text-[9px] font-semibold px-1.5 py-0.5 rounded-sm uppercase tracking-wide">
+                                                {item.badge}
+                                            </span>
+                                        )}
+                                    </Link>
                                 )}
-                            </Link>
+                            </div>
                         ))}
 
                         {/* Mobile Auth Links */}
