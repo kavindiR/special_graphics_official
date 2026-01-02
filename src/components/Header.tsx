@@ -27,7 +27,7 @@ const navItems: NavItem[] = [
     { 
         label: 'Showcase', 
         dropdown: [
-            { label: 'Inspiration', href: '/showcase' },
+            { label: 'Inspiration', href: '/inspirations' },
             { label: 'Contest', href: '/contest' }
         ]
     },

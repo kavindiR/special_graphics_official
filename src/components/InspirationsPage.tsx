@@ -1,349 +1,265 @@
 'use client';
 
 import { useState } from 'react';
-import { Bell, ChevronDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import Image from 'next/image';
+import { Poppins } from 'next/font/google'; 
+import { Heart, Search, X, ChevronLeft, ChevronRight, ThumbsUp, Maximize2, ZoomIn } from 'lucide-react';
+
+// --- TYPES ---
+interface Design {
+  id: number;
+  title: string;
+  designer: string;
+  likes: number;
+  description: string;
+  tags: string[];
+  tools: string;
+  image: string;
+  isLiked: boolean;
+}
+
+// --- FONT ---
+const poppins = Poppins({ 
+  subsets: ['latin'], 
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-poppins',
+});
+
+// --- DATA ---
+const initialDesigns: Design[] = [
+  {
+    id: 1,
+    title: 'Creative Logo Design',
+    designer: 'Red_Dragon',
+    likes: 14,
+    description: "Gift Box for realtors in collaboration with Finchberry products.",
+    tags: ['Logo', 'Branding'],
+    tools: 'Illustrator',
+    image: '/inspiration/1.jpeg', 
+    isLiked: false
+  },
+  { 
+    id: 2, title: 'Modern Coffee Brand', designer: 'Studio_K', likes: 45, 
+    description: "Modern minimalist branding.", tags: ['Branding'], tools: 'Photoshop',
+    image: '/inspiration/2.jpeg', isLiked: true 
+  },
+  { 
+    id: 3, title: 'Neon Cyberpunk', designer: 'Neon_Arts', likes: 32, 
+    description: "Futuristic poster design.", tags: ['Poster'], tools: 'Procreate',
+    image: '/inspiration/3.jpeg', isLiked: false 
+  },
+  { 
+    id: 4, title: 'Eco Packaging', designer: 'Pack_Master', likes: 89, 
+    description: "Sustainable packaging.", tags: ['Packaging'], tools: 'Blender',
+    image: '/inspiration/4.jpeg', isLiked: false 
+  },
+  { 
+    id: 5, title: 'Corporate Web UI', designer: 'UI_Ninja', likes: 12, 
+    description: "Clean website layout.", tags: ['Web Design'], tools: 'Figma',
+    image: '/inspiration/5.png', isLiked: false 
+  },
+  { 
+    id: 6, title: 'Fitness App', designer: 'App_Wiz', likes: 67, 
+    description: "Dark mode mobile interface.", tags: ['App'], tools: 'Figma',
+    image: '/inspiration/6.jpg', isLiked: true 
+  },
+  { 
+    id: 7, title: 'Vintage Label', designer: 'Old_School', likes: 55, 
+    description: "Hand-drawn vintage label.", tags: ['Label'], tools: 'Illustrator',
+    image: '/inspiration/7.jpg', isLiked: false 
+  },
+  { 
+    id: 8, title: 'Abstract Album Art', designer: 'Music_Visuals', likes: 102, 
+    description: "Abstract 3D render.", tags: ['Album Art'], tools: 'Cinema 4D',
+    image: '/inspiration/8.png', isLiked: true 
+  }
+];
 
 export default function InspirationsPage() {
-    const [activeFilter, setActiveFilter] = useState('rated');
+  const [designs, setDesigns] = useState<Design[]>(initialDesigns);
+  const [selectedDesign, setSelectedDesign] = useState<Design | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showLikedOnly, setShowLikedOnly] = useState<boolean>(false);
+  const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
 
-    const designs = [
-        { id: 25, designer: 'Raj', rating: 5, logoIndex: 0 },
-        { id: 24, designer: 'Palak', rating: 5, logoIndex: 1 },
-        { id: 22, designer: 'Ramesh', rating: 1, logoIndex: 2 },
-        { id: 21, designer: 'Jen', rating: 0, logoIndex: 3 },
-        { id: 16, designer: 'James', rating: 0, logoIndex: 4 },
-        { id: 15, designer: 'Robin', rating: 0, logoIndex: 5 },
-        { id: 13, designer: 'Kali', rating: 0, logoIndex: 6 },
-        { id: 21, designer: 'Polo986', rating: 0, logoIndex: 7 },
-        { id: 12, designer: 'Designer', rating: 0, logoIndex: 8 },
-        { id: 10, designer: 'Designer', rating: 0, logoIndex: 9 },
-    ];
+  // --- FILTER LOGIC ---
+  const filteredDesigns = designs.filter(design => {
+    const matchesSearch = design.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          design.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesFilter = showLikedOnly ? design.isLiked : true;
+    return matchesSearch && matchesFilter;
+  });
 
-    const logoColor = '#111111';
-    const logoStroke = '#111111';
+  const openDetail = (design: Design) => { setSelectedDesign(design); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const closeDetail = () => { setSelectedDesign(null); setIsFullScreen(false); };
+  
+  const toggleLike = (id: number) => {
+    setDesigns(prev => prev.map(d => 
+        d.id === id ? { ...d, isLiked: !d.isLiked, likes: d.isLiked ? d.likes - 1 : d.likes + 1 } : d
+    ));
+    if (selectedDesign && selectedDesign.id === id) {
+        setSelectedDesign(prev => (prev ? { ...prev, isLiked: !prev.isLiked, likes: !prev.isLiked ? prev.likes + 1 : prev.likes - 1 } : null));
+    }
+  };
 
-    const logoTemplates = [
-        () => (
-            <svg viewBox="0 0 200 200" className="w-full h-full" aria-hidden="true">
-                <rect width="200" height="200" fill="#ffffff" />
-                <polygon points="100,24 110,44 90,44" fill={logoColor} />
-                <rect x="72" y="60" width="56" height="32" fill="none" stroke={logoStroke} strokeWidth="3" />
-                <path d="M50 130 Q80 110 100 130 Q120 150 150 130" stroke={logoStroke} strokeWidth="3" fill="none" />
-                <path d="M40 150 Q90 130 120 150 Q150 170 160 150" stroke={logoStroke} strokeWidth="3" fill="none" />
-                <text x="100" y="175" textAnchor="middle" fontFamily="Playfair Display, serif" fontSize="28" fontWeight="700" fill={logoColor}>WONDER</text>
-                <text x="100" y="195" textAnchor="middle" fontFamily="Playfair Display, serif" fontSize="20" fontWeight="600" fill={logoColor}>FARM</text>
-            </svg>
-        ),
-        () => (
-            <svg viewBox="0 0 200 200" className="w-full h-full" aria-hidden="true">
-                <rect width="200" height="200" fill="#ffffff" />
-                <circle cx="100" cy="90" r="70" fill="none" stroke={logoStroke} strokeWidth="4" />
-                <path d="M40 110 Q80 90 120 110 Q160 130 180 110" stroke={logoStroke} strokeWidth="3" fill="none" />
-                <line x1="60" y1="60" x2="40" y2="40" stroke={logoStroke} strokeWidth="3" />
-                <line x1="140" y1="60" x2="160" y2="40" stroke={logoStroke} strokeWidth="3" />
-                <text x="100" y="150" textAnchor="middle" fontFamily="Playfair Display, serif" fontSize="28" fontWeight="700" fill={logoColor}>WONDER</text>
-                <text x="100" y="170" textAnchor="middle" fontFamily="Playfair Display, serif" fontSize="18" fontWeight="600" fill={logoColor}>FARM</text>
-            </svg>
-        ),
-        () => (
-            <svg viewBox="0 0 200 200" className="w-full h-full" aria-hidden="true">
-                <rect width="200" height="200" fill="#ffffff" />
-                <circle cx="100" cy="90" r="70" fill="none" stroke={logoStroke} strokeWidth="4" strokeDasharray="6 6" />
-                <path d="M40 120 Q80 100 120 120 Q160 140 180 120" stroke={logoStroke} strokeWidth="3" fill="none" />
-                <polygon points="100,40 110,55 90,55" fill={logoColor} />
-                <text x="100" y="150" textAnchor="middle" fontFamily="Playfair Display, serif" fontSize="28" fontWeight="700" fill={logoColor}>WONDER</text>
-                <text x="100" y="170" textAnchor="middle" fontFamily="Playfair Display, serif" fontSize="18" fontWeight="600" fill={logoColor}>FARM</text>
-            </svg>
-        ),
-        () => (
-            <svg viewBox="0 0 200 200" className="w-full h-full" aria-hidden="true">
-                <rect width="200" height="200" fill="#ffffff" />
-                <path d="M40 120 Q70 110 80 130 Q95 110 120 120 Q150 110 160 130" stroke={logoStroke} strokeWidth="3" fill="none" />
-                <line x1="60" y1="60" x2="60" y2="100" stroke={logoStroke} strokeWidth="3" />
-                <line x1="140" y1="60" x2="140" y2="100" stroke={logoStroke} strokeWidth="3" />
-                <text x="100" y="150" textAnchor="middle" fontFamily="Playfair Display, serif" fontSize="30" fontWeight="700" fill={logoColor}>WONER</text>
-                <text x="100" y="170" textAnchor="middle" fontFamily="Playfair Display, serif" fontSize="18" fontWeight="600" fill={logoColor}>FARM</text>
-            </svg>
-        ),
-        () => (
-            <svg viewBox="0 0 200 200" className="w-full h-full" aria-hidden="true">
-                <rect width="200" height="200" fill="#ffffff" />
-                <rect x="50" y="60" width="100" height="80" rx="10" fill="none" stroke={logoStroke} strokeWidth="3" />
-                <line x1="60" y1="90" x2="140" y2="90" stroke={logoStroke} strokeWidth="3" />
-                <line x1="60" y1="110" x2="140" y2="110" stroke={logoStroke} strokeWidth="3" />
-                <text x="100" y="165" textAnchor="middle" fontFamily="Playfair Display, serif" fontSize="26" fontWeight="700" fill={logoColor}>WONDER</text>
-            </svg>
-        ),
-        () => (
-            <svg viewBox="0 0 200 200" className="w-full h-full" aria-hidden="true">
-                <rect width="200" height="200" fill="#ffffff" />
-                <path d="M80 60 L120 60 L130 100 L70 100 Z" fill="none" stroke={logoStroke} strokeWidth="3" />
-                <path d="M65 115 Q90 100 100 130 Q110 100 135 115" stroke={logoStroke} strokeWidth="3" fill="none" />
-                <text x="100" y="160" textAnchor="middle" fontFamily="Playfair Display, serif" fontSize="28" fontWeight="700" fill={logoColor}>WODER</text>
-                <text x="100" y="180" textAnchor="middle" fontFamily="Playfair Display, serif" fontSize="18" fontWeight="600" fill={logoColor}>FARM</text>
-            </svg>
-        ),
-        () => (
-            <svg viewBox="0 0 200 200" className="w-full h-full" aria-hidden="true">
-                <rect width="200" height="200" fill="#ffffff" />
-                <ellipse cx="100" cy="80" rx="70" ry="50" fill="none" stroke={logoStroke} strokeWidth="3" />
-                <path d="M60 120 Q90 100 110 120 Q140 140 160 120" stroke={logoStroke} strokeWidth="3" fill="none" />
-                <text x="100" y="150" textAnchor="middle" fontFamily="Playfair Display, serif" fontSize="30" fontWeight="700" fill={logoColor}>WONDER</text>
-            </svg>
-        ),
-        () => (
-            <svg viewBox="0 0 200 200" className="w-full h-full" aria-hidden="true">
-                <rect width="200" height="200" fill="#ffffff" />
-                <path d="M50 120 Q80 110 100 130 Q120 150 150 130" stroke={logoStroke} strokeWidth="3" fill="none" />
-                <circle cx="100" cy="70" r="35" fill="none" stroke={logoStroke} strokeWidth="3" />
-                <text x="100" y="155" textAnchor="middle" fontFamily="Playfair Display, serif" fontSize="26" fontWeight="700" fill={logoColor}>WONDER</text>
-                <text x="100" y="175" textAnchor="middle" fontFamily="Playfair Display, serif" fontSize="18" fontWeight="600" fill={logoColor}>FARM</text>
-            </svg>
-        ),
-        () => (
-            <svg viewBox="0 0 200 200" className="w-full h-full" aria-hidden="true">
-                <rect width="200" height="200" fill="#ffffff" />
-                <circle cx="100" cy="80" r="50" fill="none" stroke={logoStroke} strokeWidth="3" />
-                <path d="M50 140 Q90 120 110 140 Q140 160 170 140" stroke={logoStroke} strokeWidth="3" fill="none" />
-                <text x="100" y="165" textAnchor="middle" fontFamily="Playfair Display, serif" fontSize="26" fontWeight="700" fill={logoColor}>WONDER</text>
-            </svg>
-        ),
-        () => (
-            <svg viewBox="0 0 200 200" className="w-full h-full" aria-hidden="true">
-                <rect width="200" height="200" fill="#ffffff" />
-                <rect x="40" y="60" width="120" height="80" rx="8" fill="none" stroke={logoStroke} strokeWidth="3" />
-                <text x="100" y="150" textAnchor="middle" fontFamily="Playfair Display, serif" fontSize="24" fontWeight="700" fill={logoColor}>WONDER</text>
-            </svg>
-        ),
-    ];
-
-    const renderLogo = (logoIndex: number) => {
-        const Template = logoTemplates[logoIndex] ?? logoTemplates[0];
-        return <Template />;
-    };
-
-    const handleSubmitDesign = () => {
-        alert('Submit Design functionality - Upload your design here');
-    };
-
-    const handleFilterClick = (filter: string) => {
-        setActiveFilter(filter);
-    };
-
-    return (
-        <div className="min-h-screen bg-white">
-
-
-            <main className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-                <div className="mb-8">
-                    <h1 className="text-2xl sm:text-3xl font-normal mb-6 text-gray-900 leading-tight tracking-tight">slice of life Country Love Body Cream Rendering</h1>
-
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-                            <Badge
-                                variant="outline"
-                                className="rounded-none border border-gray-300 bg-white text-gray-900 uppercase tracking-wide px-4 py-1 text-xs font-semibold"
-                            >
-                                Qualifying
-                            </Badge>
-                            <span className="text-sm font-bold text-gray-900">Guaranteed</span>
-                            <span className="text-sm font-bold text-gray-900">•</span>
-                            <span className="text-sm font-bold text-gray-900">Blind</span>
-                            <span className="text-sm font-bold text-gray-900">•</span>
-                            <span className="text-sm font-bold text-gray-900">Private</span>
-                        </div>
-
-                        <div className="flex flex-col items-end sm:items-center gap-2">
-                            <Button
-                                className="bg-black hover:bg-gray-800 text-white rounded-none px-6 py-2 border-0"
-                                onClick={handleSubmitDesign}
-                            >
-                                Submit Design
-                            </Button>
-                            <span className="text-base sm:text-xl font-semibold text-gray-900">30 USD</span>
-                        </div>
-                    </div>
-
-                    <Tabs defaultValue="designs" className="mb-6">
-                        <TabsList className="bg-transparent border-b border-gray-200 rounded-none h-auto p-0 space-x-6">
-                            <TabsTrigger
-                                value="brief"
-                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-black data-[state=active]:bg-transparent bg-transparent pb-2 font-bold text-gray-900"
-                            >
-                                Brief
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="designs"
-                                className="rounded-none border-b-2 border-transparent data-[state=active]:border-black data-[state=active]:bg-transparent bg-transparent pb-2 font-bold text-gray-900"
-                            >
-                                Designs <span className="ml-1 text-gray-500">(65)</span>
-                            </TabsTrigger>
-                        </TabsList>
-                    </Tabs>
-
-                    <div className="bg-black text-white p-4 sm:p-5 mb-6 flex items-center gap-3">
-                        <Bell className="h-5 w-5 flex-shrink-0" />
-                        <span className="text-sm sm:text-base leading-relaxed">
-                            You have 1 day, 15 hours left to <a href="#" className="underline hover:no-underline font-medium" onClick={(e) => { e.preventDefault(); handleSubmitDesign(); }}>submit design concepts</a>.
-                        </span>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-                        <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm">
-                            <button
-                                className={`${activeFilter === 'all' ? 'font-bold border-b-2 border-black pb-1' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
-                                onClick={() => handleFilterClick('all')}
-                            >
-                                All <span className="text-gray-400">(65)</span>
-                            </button>
-                            <button
-                                className={`${activeFilter === 'active' ? 'font-bold border-b-2 border-black pb-1' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
-                                onClick={() => handleFilterClick('active')}
-                            >
-                                Active <span className="text-gray-400">(11)</span>
-                            </button>
-                            <button
-                                className={`${activeFilter === 'rated' ? 'font-bold border-b-2 border-black pb-1' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
-                                onClick={() => handleFilterClick('rated')}
-                            >
-                                Rated <span className="text-gray-400">(2)</span>
-                            </button>
-                            <button
-                                className={`${activeFilter === 'withdrawn' ? 'font-bold border-b-2 border-black pb-1' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
-                                onClick={() => handleFilterClick('withdrawn')}
-                            >
-                                Withdrawn <span className="text-gray-400">(2)</span>
-                            </button>
-                            <button
-                                className={`${activeFilter === 'declined' ? 'font-bold border-b-2 border-black pb-1' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
-                                onClick={() => handleFilterClick('declined')}
-                            >
-                                Declined <span className="text-gray-400">(2)</span>
-                            </button>
-                        </div>
-
-                        <DropdownMenu>
-                            <DropdownMenuTrigger className="flex items-center space-x-2 text-sm font-bold text-gray-700">
-                                <span>All Designers (23)</span>
-                                <ChevronDown className="h-4 w-4" />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                <DropdownMenuItem onClick={() => alert('All Designers selected')}>All Designers</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => alert('Top Rated selected')}>Top Rated</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => alert('Recent selected')}>Recent</DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-                    {designs.slice(0, 4).map((design) => (
-                        <div
-                            key={design.id}
-                            className="bg-white border border-gray-100 overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-300 group"
-                            onClick={() => alert(`Viewing design #${design.id} by ${design.designer}`)}
-                        >
-                            <div className="aspect-square bg-white flex items-center justify-center p-6">
-                                <div className="w-full h-full flex items-center justify-center">
-                                    {renderLogo(design.logoIndex)}
-                                </div>
-                            </div>
-                            <div className="p-4 sm:p-5 bg-white border-t border-gray-100">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs sm:text-sm font-medium text-gray-700">#{design.id} by {design.designer}</span>
-                                    <div className="flex gap-0.5 items-center">
-                                        {[...Array(5)].map((_, i) => (
-                                            <span key={i} className={`text-xl sm:text-2xl leading-none ${i < design.rating ? 'text-gray-900' : 'text-gray-300'}`}>★</span>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-                    {designs.slice(4, 8).map((design) => (
-                        <div
-                            key={design.id}
-                            className="bg-white border border-gray-100 overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-300 group"
-                            onClick={() => alert(`Viewing design #${design.id} by ${design.designer}`)}
-                        >
-                            <div className="aspect-square bg-white flex items-center justify-center p-6">
-                                <div className="w-full h-full flex items-center justify-center">
-                                    {renderLogo(design.logoIndex)}
-                                </div>
-                            </div>
-                            <div className="p-4 sm:p-5 bg-white border-t border-gray-100">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs sm:text-sm font-medium text-gray-700">#{design.id} by {design.designer}</span>
-                                    <div className="flex gap-0.5 items-center">
-                                        {[...Array(5)].map((_, i) => (
-                                            <span key={i} className={`text-xl sm:text-2xl leading-none ${i < design.rating ? 'text-gray-900' : 'text-gray-300'}`}>★</span>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                    {designs.slice(8, 10).map((design) => (
-                        <div
-                            key={design.id}
-                            className="bg-white border border-gray-100 overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-300 group"
-                            onClick={() => alert(`Viewing design #${design.id} by ${design.designer}`)}
-                        >
-                            <div className="aspect-square bg-white flex items-center justify-center p-6">
-                                <div className="w-full h-full flex items-center justify-center">
-                                    {renderLogo(design.logoIndex)}
-                                </div>
-                            </div>
-                            <div className="p-4 sm:p-5 bg-white border-t border-gray-100">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs sm:text-sm font-medium text-gray-700">#{design.id} by {design.designer}</span>
-                                    <div className="flex gap-0.5 items-center">
-                                        {[...Array(5)].map((_, i) => (
-                                            <span key={i} className={`text-xl sm:text-2xl leading-none ${i < design.rating ? 'text-gray-900' : 'text-gray-300'}`}>★</span>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                    {[0, 1].map((hidden) => (
-                        <div key={`hidden-${hidden}`} className="bg-white border border-gray-100">
-                            <div className="aspect-square bg-white flex items-center justify-center p-6">
-                                <span className="text-gray-400 text-base sm:text-lg font-medium">Hidden</span>
-                            </div>
-                            <div className="p-4 sm:p-5 bg-white border-t border-gray-100">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs sm:text-sm font-medium text-gray-400">Hidden</span>
-                                    <div className="flex gap-0.5 items-center">
-                                        {[...Array(5)].map((_, i) => (
-                                            <span key={i} className="text-xl sm:text-2xl leading-none text-gray-300">★</span>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </main>
-
-
+  return (
+    <main 
+      className={`min-h-screen bg-white ${poppins.variable}`}
+      style={{
+          '--font-body': 'var(--font-poppins)',
+          '--font-heading': 'var(--font-poppins)',
+          fontFamily: 'var(--font-poppins)'
+      } as React.CSSProperties}
+    >
+      
+      {/* FULL SCREEN MODAL */}
+      {isFullScreen && selectedDesign && (
+        <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <button onClick={() => setIsFullScreen(false)} className="absolute top-6 right-6 text-white hover:text-gray-300">
+                <X className="w-10 h-10" />
+            </button>
+            <div className="relative max-w-7xl max-h-[90vh]">
+                 <img src={selectedDesign.image} alt={selectedDesign.title} className="max-w-full max-h-[90vh] object-contain" />
+            </div>
         </div>
-    );
+      )}
+
+      {/* CONTAINER */}
+      <div className="max-w-[1400px] mx-auto px-6 py-10">
+
+        {/* --- VIEW 1: GALLERY LIST --- */}
+        {!selectedDesign && (
+          <>
+            {/* Header */}
+            <div className="flex flex-col md:flex-row justify-between items-end mb-10 border-b border-gray-100 pb-6">
+                <div>
+                    <h1 className="font-heading text-3xl font-bold text-gray-900 mb-4">Discover graphic design ideas & inspiration</h1>
+                    <div className="flex items-center gap-2">
+                         <div className="relative">
+                            <input 
+                                type="text" 
+                                placeholder="Search logos, branding..." 
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-10 pr-4 py-2 border border-gray-300 rounded-sm text-sm w-80 focus:outline-none focus:border-black transition-all"
+                            />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                         </div>
+                         <button className="border border-gray-300 px-4 py-2 text-sm rounded-sm hover:bg-gray-50 transition-colors">Filters</button>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3 mb-1 md:mb-0 cursor-pointer" onClick={() => setShowLikedOnly(!showLikedOnly)}>
+                    <span className={`text-sm font-bold ${showLikedOnly ? 'text-black' : 'text-gray-500'} transition-colors`}>Filter your liked designs</span>
+                    <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${showLikedOnly ? 'bg-black' : 'bg-gray-300'}`}>
+                        <div className={`w-4 h-4 bg-white rounded-full shadow-sm absolute top-0.5 transition-transform duration-300 ${showLikedOnly ? 'left-5' : 'left-0.5'}`}></div>
+                    </div>
+                </div>
+            </div>
+
+            {/* GRID LAYOUT */}
+            {filteredDesigns.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {filteredDesigns.map((design) => (
+                        <div key={design.id} className="relative group cursor-pointer" onClick={() => openDetail(design)}>
+                            
+                            <div className="w-full h-72 bg-gray-100 rounded-sm relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+                                {design.image ? (
+                                    <img 
+                                        src={design.image} 
+                                        alt={design.title} 
+                                        className="w-full h-full object-cover" 
+                                    />
+                                ) : (
+                                    <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-xs">[Image Placeholder]</div>
+                                )}
+                                
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center items-center">
+                                    <div className="bg-white/20 p-3 rounded-full backdrop-blur-sm mb-2 transform scale-75 group-hover:scale-100 transition-transform duration-300">
+                                        <ZoomIn className="w-6 h-6 text-white" />
+                                    </div>
+                                    <span className="text-white font-bold tracking-wide text-sm">View Design</span>
+                                </div>
+
+                                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex justify-between items-end">
+                                    <div className="text-white">
+                                        <h3 className="font-bold text-sm">{design.title}</h3>
+                                        <p className="text-xs opacity-90">by {design.designer}</p>
+                                    </div>
+                                    {design.isLiked && <Heart className="w-4 h-4 text-red-500 fill-red-500" />}
+                                </div>
+                            </div>
+
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center py-20 text-gray-400"><p>No designs found.</p></div>
+            )}
+          </>
+        )}
+
+        {/* --- VIEW 2: DETAIL VIEW --- */}
+        {selectedDesign && (
+           <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+               <div className="flex justify-between items-center mb-6">
+                   <div className="text-sm text-gray-500">
+                       <span className="cursor-pointer hover:text-black transition-colors" onClick={closeDetail}>Inspiration</span> / Detail
+                   </div>
+                   <div className="flex items-center gap-4 text-sm font-medium text-gray-600">
+                       <ChevronLeft className="w-4 h-4 cursor-pointer hover:text-black" />
+                       <span> {selectedDesign.id} / {designs.length} </span>
+                       <ChevronRight className="w-4 h-4 cursor-pointer hover:text-black" />
+                       <X className="w-5 h-5 ml-4 cursor-pointer hover:text-red-500 transition-colors" onClick={closeDetail} />
+                   </div>
+               </div>
+
+               <div className="bg-white border border-gray-100 shadow-lg rounded-sm flex flex-col md:flex-row min-h-[600px]">
+                   <div className="w-full md:w-[350px] border-r border-gray-100 p-8 flex flex-col flex-shrink-0">
+                       <h2 className="font-heading text-2xl font-bold text-gray-900 mb-6">{selectedDesign.title}</h2>
+                       <div className="flex items-center justify-between mb-2">
+                           <div className="flex items-center gap-3">
+                               <div className="w-10 h-10 bg-black rounded-sm flex items-center justify-center text-white text-xs font-bold">
+                                   {selectedDesign.designer.substring(0, 2).toUpperCase()}
+                               </div>
+                               <div className="text-xs">
+                                   <span className="text-gray-400 block">by</span>
+                                   <span className="font-bold text-gray-900">{selectedDesign.designer}</span>
+                               </div>
+                           </div>
+                           <button onClick={() => toggleLike(selectedDesign.id)} className={`flex items-center gap-1.5 text-xs border px-3 py-1.5 rounded-full transition-all ${selectedDesign.isLiked ? 'border-red-500 text-red-500 bg-red-50' : 'border-gray-200 text-gray-500 hover:border-black hover:text-black'}`}>
+                               <span>{selectedDesign.likes}</span>
+                               <ThumbsUp className={`w-3 h-3 ${selectedDesign.isLiked ? 'fill-current' : ''}`} />
+                           </button>
+                       </div>
+                       <div className="text-[10px] text-gray-400 underline mb-8 cursor-pointer hover:text-black">Logo Design Contest</div>
+                       <p className="text-sm text-gray-500 leading-relaxed mb-8 font-body">{selectedDesign.description}</p>
+                       <div className="flex flex-wrap gap-2 mb-8">
+                           {selectedDesign.tags?.map((tag, i) => (
+                               <span key={i} className="bg-gray-50 text-gray-600 px-3 py-1 text-[11px] font-medium rounded-full">{tag}</span>
+                           ))}
+                       </div>
+                       <div className="mt-auto pt-6 border-t border-gray-100">
+                           <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Tools Used</p>
+                           <p className="text-xs text-gray-600 font-medium">{selectedDesign.tools}</p>
+                       </div>
+                       <div className="mt-4 text-[10px] text-gray-400 flex items-center gap-1">Designed on Special Graphics <span className="text-green-500 font-bold">✓</span></div>
+                   </div>
+
+                   <div className="flex-1 bg-white p-8 md:p-12 flex items-center justify-center relative group bg-[radial-gradient(#f1f1f1_1px,transparent_1px)] [background-size:16px_16px]">
+                        <div className="relative cursor-zoom-in shadow-2xl transition-transform duration-300 hover:scale-[1.01]" onClick={() => setIsFullScreen(true)}>
+                            {selectedDesign.image ? (
+                                 <img src={selectedDesign.image} alt={selectedDesign.title} className="max-w-full max-h-[600px] object-contain block" />
+                            ) : (
+                                 <div className="w-[500px] h-[400px] bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-300 text-sm">[Large Design Preview]</div>
+                            )}
+                            <div className="absolute bottom-4 right-4 bg-black/70 text-white text-xs px-3 py-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 pointer-events-none">
+                                <Maximize2 className="w-3 h-3" /> Full Screen
+                            </div>
+                        </div>
+                   </div>
+               </div>
+           </div>
+        )}
+      </div>
+    </main>
+  );
 }
