@@ -1,12 +1,12 @@
 # Special Graphics Backend API
 
-Express.js backend server for the Special Graphics application, built with TypeScript, MongoDB, and JWT authentication.
+Express.js backend server for the Special Graphics application, built with TypeScript, PostgreSQL, and JWT authentication.
 
 ## 🚀 Features
 
 - **RESTful API** with Express.js
 - **TypeScript** for type safety
-- **MongoDB** with Mongoose ODM
+- **PostgreSQL** with Sequelize ORM
 - **JWT Authentication** for secure user sessions
 - **Password Hashing** with bcryptjs
 - **Input Validation** with express-validator
@@ -15,11 +15,12 @@ Express.js backend server for the Special Graphics application, built with TypeS
 - **Security** headers with Helmet
 - **Request Logging** with Morgan
 - **Response Compression** for better performance
+- **Rate Limiting** for login attempts
 
 ## 📋 Prerequisites
 
 - Node.js 18+ and npm
-- MongoDB (local or MongoDB Atlas)
+- PostgreSQL 12+ (local or cloud database)
 
 ## 🛠️ Installation
 
@@ -39,10 +40,15 @@ Express.js backend server for the Special Graphics application, built with TypeS
    ```
    
    Edit `.env` and configure:
-   - `MONGODB_URI` - Your MongoDB connection string
+   - `DB_NAME` - PostgreSQL database name (default: special_graphics)
+   - `DB_USER` - PostgreSQL username (default: postgres)
+   - `DB_PASSWORD` - PostgreSQL password
+   - `DB_HOST` - PostgreSQL host (default: localhost)
+   - `DB_PORT` - PostgreSQL port (default: 5432)
    - `JWT_SECRET` - A secret key for JWT tokens
    - `PORT` - Server port (default: 5000)
    - `FRONTEND_URL` - Your frontend URL for CORS
+   - `SYNC_DB` - Set to 'true' in development to auto-sync models (optional)
 
 ## 🏃 Running the Server
 
@@ -65,7 +71,9 @@ npm start
 
 ### Authentication
 - `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
+- `POST /api/auth/login` - Login user (rate limited: 5 attempts per 15 minutes)
+- `POST /api/auth/logout` - Logout user (protected)
+- `POST /api/auth/refresh-token` - Refresh JWT token (protected)
 - `GET /api/auth/me` - Get current user (protected)
 - `PUT /api/auth/profile` - Update profile (protected)
 
@@ -178,16 +186,24 @@ backend/
 |----------|-------------|---------|
 | `PORT` | Server port | `5000` |
 | `NODE_ENV` | Environment (development/production) | `development` |
-| `MONGODB_URI` | MongoDB connection string | Required |
+| `DB_NAME` | PostgreSQL database name | `special_graphics` |
+| `DB_USER` | PostgreSQL username | `postgres` |
+| `DB_PASSWORD` | PostgreSQL password | Required |
+| `DB_HOST` | PostgreSQL host | `localhost` |
+| `DB_PORT` | PostgreSQL port | `5432` |
+| `DB_DIALECT` | Database dialect | `postgres` |
 | `JWT_SECRET` | Secret key for JWT | Required |
 | `JWT_EXPIRE` | JWT expiration time | `7d` |
 | `FRONTEND_URL` | Frontend URL for CORS | `http://localhost:3000` |
+| `SYNC_DB` | Auto-sync models in development | `false` |
 
 ## 🐛 Troubleshooting
 
-### MongoDB Connection Issues
-- Ensure MongoDB is running locally or MongoDB Atlas connection string is correct
-- Check firewall settings if using MongoDB Atlas
+### Database Connection Issues
+- Ensure PostgreSQL is running locally or cloud database connection details are correct
+- Check firewall settings if using a cloud PostgreSQL service
+- Verify database exists: `CREATE DATABASE special_graphics;`
+- Ensure user has proper permissions on the database
 
 ### Port Already in Use
 - Change `PORT` in `.env` file
@@ -201,7 +217,9 @@ backend/
 
 ### Production
 - `express` - Web framework
-- `mongoose` - MongoDB ODM
+- `sequelize` - SQL ORM for PostgreSQL
+- `pg` - PostgreSQL client
+- `pg-hstore` - PostgreSQL hstore support
 - `cors` - CORS middleware
 - `dotenv` - Environment variables
 - `bcryptjs` - Password hashing

@@ -8,6 +8,10 @@ import { connectDatabase } from './config/database';
 import { errorHandler } from './middleware/errorHandler';
 import { notFound } from './middleware/notFound';
 
+// Import models to initialize them
+import './models/User.model';
+import './models/Design.model';
+
 // Import routes
 import authRoutes from './routes/auth.routes';
 import inspirationsRoutes from './routes/inspirations.routes';
@@ -19,6 +23,9 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Trust proxy for accurate IP addresses (important for rate limiting)
+app.set('trust proxy', 1);
 
 // Connect to database
 connectDatabase();

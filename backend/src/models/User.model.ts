@@ -1,6 +1,8 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import { DataTypes, Model, Optional } from 'sequelize';
+import { sequelize } from '../config/database';
 
-export interface IUser extends Document {
+export interface UserAttributes {
+  id: number;
   name: string;
   email: string;
   password: string;
@@ -8,59 +10,133 @@ export interface IUser extends Document {
   avatar?: string;
   bio?: string;
   isVerified: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-const UserSchema: Schema = new Schema(
+export interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'avatar' | 'bio' | 'isVerified' | 'createdAt' | 'updatedAt'> {}
+
+export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
+  public id!: number;
+  public name!: string;
+  public email!: string;
+  public password!: string;
+  public role!: 'user' | 'designer' | 'admin';
+  public avatar?: string;
+  public bio?: string;
+  public isVerified!: boolean;
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+
+  // Instance method to exclude password from JSON
+  public toJSON(): Omit<UserAttributes, 'password'> {
+    const values = { ...this.get() };
+    delete (values as any).password;
+    return values;
+  }
+}
+
+User.init(
   {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true
+    },
     name: {
-      type: String,
-      required: [true, 'Name is required'],
-      trim: true
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        notEmpty: {
+          msg: 'Name is required'
+        }
+      }
     },
     email: {
-      type: String,
-      required: [true, 'Email is required'],
+      type: DataTypes.STRING,
+      allowNull: false,
       unique: true,
-      lowercase: true,
-      trim: true,
-      match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email']
+      validate: {
+        isEmail: {
+          msg: 'Please provide a valid email'
+        },
+        notEmpty: {
+          msg: 'Email is required'
+        }
+      }
     },
     password: {
-      type: String,
-      required: [true, 'Password is required'],
-      minlength: [6, 'Password must be at least 6 characters']
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        len: {
+          args: [6, Infinity],
+          msg: 'Password must be at least 6 characters'
+        },
+        notEmpty: {
+          msg: 'Password is required'
+        }
+      }
     },
     role: {
-      type: String,
-      enum: ['user', 'designer', 'admin'],
-      default: 'user'
+      type: DataTypes.ENUM('user', 'designer', 'admin'),
+      defaultValue: 'user',
+      allowNull: false
     },
     avatar: {
-      type: String,
-      default: ''
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: ''
     },
     bio: {
-      type: String,
-      maxlength: [500, 'Bio cannot exceed 500 characters']
+      type: DataTypes.TEXT,
+      allowNull: true,
+      validate: {
+        len: {
+          args: [0, 500],
+          msg: 'Bio cannot exceed 500 characters'
+        }
+      }
     },
     isVerified: {
-      type: Boolean,
-      default: false
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      allowNull: false
     }
   },
   {
-    timestamps: true
+    sequelize,
+    tableName: 'users',
+    timestamps: true,
+    defaultScope: {
+      attributes: { exclude: ['password'] }
+    },
+    scopes: {
+      withPassword: {
+        attributes: { include: ['password'] }
+      }
+    },
+    indexes: [
+      {
+        unique: true,
+        fields: ['email']
+      }
+    ],
+    hooks: {
+      beforeCreate: (user: User) => {
+        // Convert email to lowercase
+        if (user.email) {
+          user.email = user.email.toLowerCase().trim();
+        }
+      },
+      beforeUpdate: (user: User) => {
+        // Convert email to lowercase
+        if (user.email) {
+          user.email = user.email.toLowerCase().trim();
+        }
+      }
+    }
   }
 );
 
-// Remove password from JSON output
-UserSchema.methods.toJSON = function () {
-  const obj = this.toObject();
-  delete obj.password;
-  return obj;
-};
-
-export default mongoose.model<IUser>('User', UserSchema);
-
+export default User;

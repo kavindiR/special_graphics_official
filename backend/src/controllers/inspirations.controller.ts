@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
+import { Op } from 'sequelize';
 import Design from '../models/Design.model';
+import User from '../models/User.model';
 import { AppError } from '../middleware/errorHandler';
+import { AuthRequest } from '../middleware/auth';
 
 // Get all inspirations (designs)
 export const getAllInspirations = async (
@@ -11,15 +14,18 @@ export const getAllInspirations = async (
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
-    const skip = (page - 1) * limit;
+    const offset = (page - 1) * limit;
 
-    const designs = await Design.find()
-      .populate('designer', 'name avatar')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Design.countDocuments();
+    const { count, rows: designs } = await Design.findAndCountAll({
+      include: [{
+        model: User,
+        as: 'designer',
+        attributes: ['id', 'name', 'avatar']
+      }],
+      order: [['createdAt', 'DESC']],
+      limit,
+      offset
+    });
 
     res.status(200).json({
       success: true,
@@ -28,8 +34,8 @@ export const getAllInspirations = async (
         pagination: {
           page,
           limit,
-          total,
-          pages: Math.ceil(total / limit)
+          total: count,
+          pages: Math.ceil(count / limit)
         }
       }
     });
@@ -45,8 +51,15 @@ export const getInspirationById = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const design = await Design.findById(req.params.id)
-      .populate('designer', 'name avatar bio');
+    const designId = parseInt(req.params.id);
+    
+    const design = await Design.findByPk(designId, {
+      include: [{
+        model: User,
+        as: 'designer',
+        attributes: ['id', 'name', 'avatar', 'bio']
+      }]
+    });
 
     if (!design) {
       const error = new Error('Design not found') as AppError;
@@ -73,37 +86,42 @@ export const searchInspirations = async (
     const { q, tags, tools } = req.query;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
-    const skip = (page - 1) * limit;
+    const offset = (page - 1) * limit;
 
-    let query: any = {};
+    const where: any = {};
 
     // Text search
     if (q) {
-      query.$or = [
-        { title: { $regex: q as string, $options: 'i' } },
-        { description: { $regex: q as string, $options: 'i' } },
-        { tags: { $in: [(q as string).toLowerCase()] } }
+      const searchTerm = `%${q}%`;
+      where[Op.or] = [
+        { title: { [Op.iLike]: searchTerm } },
+        { description: { [Op.iLike]: searchTerm } },
+        { tags: { [Op.contains]: [(q as string).toLowerCase()] } }
       ];
     }
 
     // Tag filter
     if (tags) {
       const tagArray = Array.isArray(tags) ? tags : [tags];
-      query.tags = { $in: tagArray };
+      where.tags = { [Op.overlap]: tagArray };
     }
 
     // Tools filter
     if (tools) {
-      query.tools = { $regex: tools as string, $options: 'i' };
+      where.tools = { [Op.iLike]: `%${tools}%` };
     }
 
-    const designs = await Design.find(query)
-      .populate('designer', 'name avatar')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Design.countDocuments(query);
+    const { count, rows: designs } = await Design.findAndCountAll({
+      where,
+      include: [{
+        model: User,
+        as: 'designer',
+        attributes: ['id', 'name', 'avatar']
+      }],
+      order: [['createdAt', 'DESC']],
+      limit,
+      offset
+    });
 
     res.status(200).json({
       success: true,
@@ -112,8 +130,8 @@ export const searchInspirations = async (
         pagination: {
           page,
           limit,
-          total,
-          pages: Math.ceil(total / limit)
+          total: count,
+          pages: Math.ceil(count / limit)
         }
       }
     });
@@ -129,8 +147,8 @@ export const toggleLike = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const designId = req.params.id;
-    const userId = (req as any).user?.id;
+    const designId = parseInt(req.params.id);
+    const userId = parseInt((req as AuthRequest).user?.id || '0');
 
     if (!userId) {
       const error = new Error('Authentication required') as AppError;
@@ -138,35 +156,38 @@ export const toggleLike = async (
       throw error;
     }
 
-    const design = await Design.findById(designId);
+    const design = await Design.findByPk(designId);
     if (!design) {
       const error = new Error('Design not found') as AppError;
       error.statusCode = 404;
       throw error;
     }
 
-    const likedIndex = design.likedBy.indexOf(userId);
+    const likedBy = design.likedBy || [];
+    const likedIndex = likedBy.indexOf(userId);
+    let isLiked = false;
+
     if (likedIndex > -1) {
       // Unlike
-      design.likedBy.splice(likedIndex, 1);
+      likedBy.splice(likedIndex, 1);
       design.likes = Math.max(0, design.likes - 1);
     } else {
       // Like
-      design.likedBy.push(userId);
+      likedBy.push(userId);
       design.likes += 1;
+      isLiked = true;
     }
 
-    await design.save();
+    await design.update({ likedBy, likes: design.likes });
 
     res.status(200).json({
       success: true,
       data: {
         design,
-        isLiked: likedIndex === -1
+        isLiked
       }
     });
   } catch (error) {
     next(error);
   }
 };
-

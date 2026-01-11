@@ -11,7 +11,7 @@ export const createDesign = async (
 ): Promise<void> => {
   try {
     const { title, description, image, tags, tools } = req.body;
-    const userId = req.user?.id;
+    const userId = parseInt(req.user?.id || '0');
 
     if (!userId) {
       const error = new Error('Authentication required') as AppError;
@@ -20,7 +20,7 @@ export const createDesign = async (
     }
 
     // Get user name for designerName
-    const user = await User.findById(userId);
+    const user = await User.findByPk(userId);
     if (!user) {
       const error = new Error('User not found') as AppError;
       error.statusCode = 404;
@@ -33,7 +33,7 @@ export const createDesign = async (
       image,
       tags: Array.isArray(tags) ? tags : [],
       tools,
-      designer: userId,
+      designerId: userId,
       designerName: user.name
     });
 
@@ -53,9 +53,14 @@ export const getAllDesigns = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const designs = await Design.find()
-      .populate('designer', 'name avatar')
-      .sort({ createdAt: -1 });
+    const designs = await Design.findAll({
+      include: [{
+        model: User,
+        as: 'designer',
+        attributes: ['id', 'name', 'avatar']
+      }],
+      order: [['createdAt', 'DESC']]
+    });
 
     res.status(200).json({
       success: true,
@@ -73,8 +78,15 @@ export const getDesignById = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const design = await Design.findById(req.params.id)
-      .populate('designer', 'name avatar bio');
+    const designId = parseInt(req.params.id);
+    
+    const design = await Design.findByPk(designId, {
+      include: [{
+        model: User,
+        as: 'designer',
+        attributes: ['id', 'name', 'avatar', 'bio']
+      }]
+    });
 
     if (!design) {
       const error = new Error('Design not found') as AppError;
@@ -99,10 +111,10 @@ export const updateDesign = async (
 ): Promise<void> => {
   try {
     const { title, description, image, tags, tools } = req.body;
-    const userId = req.user?.id;
-    const designId = req.params.id;
+    const userId = parseInt(req.user?.id || '0');
+    const designId = parseInt(req.params.id);
 
-    const design = await Design.findById(designId);
+    const design = await Design.findByPk(designId);
     if (!design) {
       const error = new Error('Design not found') as AppError;
       error.statusCode = 404;
@@ -110,19 +122,20 @@ export const updateDesign = async (
     }
 
     // Check if user owns the design or is admin
-    if (design.designer.toString() !== userId && req.user?.role !== 'admin') {
+    if (design.designerId !== userId && req.user?.role !== 'admin') {
       const error = new Error('Not authorized to update this design') as AppError;
       error.statusCode = 403;
       throw error;
     }
 
-    design.title = title || design.title;
-    design.description = description || design.description;
-    design.image = image || design.image;
-    design.tags = Array.isArray(tags) ? tags : design.tags;
-    design.tools = tools || design.tools;
-
-    await design.save();
+    // Update design
+    await design.update({
+      title: title || design.title,
+      description: description || design.description,
+      image: image || design.image,
+      tags: Array.isArray(tags) ? tags : design.tags,
+      tools: tools || design.tools
+    });
 
     res.status(200).json({
       success: true,
@@ -140,10 +153,10 @@ export const deleteDesign = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    const designId = req.params.id;
+    const userId = parseInt(req.user?.id || '0');
+    const designId = parseInt(req.params.id);
 
-    const design = await Design.findById(designId);
+    const design = await Design.findByPk(designId);
     if (!design) {
       const error = new Error('Design not found') as AppError;
       error.statusCode = 404;
@@ -151,13 +164,13 @@ export const deleteDesign = async (
     }
 
     // Check if user owns the design or is admin
-    if (design.designer.toString() !== userId && req.user?.role !== 'admin') {
+    if (design.designerId !== userId && req.user?.role !== 'admin') {
       const error = new Error('Not authorized to delete this design') as AppError;
       error.statusCode = 403;
       throw error;
     }
 
-    await Design.findByIdAndDelete(designId);
+    await design.destroy();
 
     res.status(200).json({
       success: true,
@@ -167,4 +180,3 @@ export const deleteDesign = async (
     next(error);
   }
 };
-
