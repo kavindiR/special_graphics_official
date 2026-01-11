@@ -1,25 +1,52 @@
-import mongoose from 'mongoose';
+import { Sequelize } from 'sequelize';
 
+// Database configuration
+const dbName = process.env.DB_NAME || 'special_graphics';
+const dbUser = process.env.DB_USER || 'postgres';
+const dbPassword = process.env.DB_PASSWORD || '';
+const dbHost = process.env.DB_HOST || 'localhost';
+const dbPort = parseInt(process.env.DB_PORT || '5432');
+const dbDialect = (process.env.DB_DIALECT || 'postgres') as 'postgres' | 'mysql' | 'sqlite';
+
+// Create Sequelize instance
+export const sequelize = new Sequelize(dbName, dbUser, dbPassword, {
+  host: dbHost,
+  port: dbPort,
+  dialect: dbDialect,
+  logging: process.env.NODE_ENV === 'development' ? console.log : false,
+  pool: {
+    max: 5,
+    min: 0,
+    acquire: 30000,
+    idle: 10000
+  },
+  define: {
+    timestamps: true,
+    underscored: false,
+    freezeTableName: false
+  }
+});
+
+// Test database connection
 export const connectDatabase = async (): Promise<void> => {
   try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/special-graphics';
+    await sequelize.authenticate();
+    console.log('✅ Database connected successfully');
     
-    await mongoose.connect(mongoURI);
+    // Sync models (in development, use { alter: true } or { force: true } carefully)
+    if (process.env.NODE_ENV === 'development' && process.env.SYNC_DB === 'true') {
+      await sequelize.sync({ alter: true });
+      console.log('✅ Database models synchronized');
+    }
     
-    console.log('✅ MongoDB connected successfully');
-    
-    mongoose.connection.on('error', (err) => {
-      console.error('❌ MongoDB connection error:', err);
-    });
-    
-    mongoose.connection.on('disconnected', () => {
-      console.log('⚠️ MongoDB disconnected');
+    sequelize.connectionManager.pool.on('error', (err: Error) => {
+      console.error('❌ Database connection pool error:', err);
     });
     
     // Graceful shutdown
     process.on('SIGINT', async () => {
-      await mongoose.connection.close();
-      console.log('MongoDB connection closed through app termination');
+      await sequelize.close();
+      console.log('Database connection closed through app termination');
       process.exit(0);
     });
   } catch (error) {
@@ -27,4 +54,3 @@ export const connectDatabase = async (): Promise<void> => {
     process.exit(1);
   }
 };
-

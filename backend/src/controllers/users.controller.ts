@@ -9,7 +9,10 @@ export const getAllUsers = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const users = await User.find().select('-password').sort({ createdAt: -1 });
+    const users = await User.findAll({
+      attributes: { exclude: ['password'] },
+      order: [['createdAt', 'DESC']]
+    });
 
     res.status(200).json({
       success: true,
@@ -27,7 +30,11 @@ export const getUserById = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const user = await User.findById(req.params.id).select('-password');
+    const userId = parseInt(req.params.id);
+    
+    const user = await User.findByPk(userId, {
+      attributes: { exclude: ['password'] }
+    });
 
     if (!user) {
       const error = new Error('User not found') as AppError;
@@ -52,8 +59,8 @@ export const updateUser = async (
 ): Promise<void> => {
   try {
     const { name, bio, avatar, role } = req.body;
-    const userId = req.params.id;
-    const currentUserId = req.user?.id;
+    const userId = parseInt(req.params.id);
+    const currentUserId = parseInt(req.user?.id || '0');
 
     // Only allow users to update their own profile, or admins to update anyone
     if (userId !== currentUserId && req.user?.role !== 'admin') {
@@ -62,23 +69,23 @@ export const updateUser = async (
       throw error;
     }
 
-    const updateData: any = {};
-    if (name) updateData.name = name;
-    if (bio !== undefined) updateData.bio = bio;
-    if (avatar) updateData.avatar = avatar;
-    if (role && req.user?.role === 'admin') updateData.role = role;
-
-    const user = await User.findByIdAndUpdate(
-      userId,
-      updateData,
-      { new: true, runValidators: true }
-    ).select('-password');
-
+    const user = await User.findByPk(userId);
     if (!user) {
       const error = new Error('User not found') as AppError;
       error.statusCode = 404;
       throw error;
     }
+
+    // Prepare update data
+    const updateData: any = {};
+    if (name) updateData.name = name;
+    if (bio !== undefined) updateData.bio = bio;
+    if (avatar) updateData.avatar = avatar;
+    if (role && req.user?.role === 'admin') {
+      updateData.role = role;
+    }
+
+    await user.update(updateData);
 
     res.status(200).json({
       success: true,
@@ -96,8 +103,8 @@ export const deleteUser = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.params.id;
-    const currentUserId = req.user?.id;
+    const userId = parseInt(req.params.id);
+    const currentUserId = parseInt(req.user?.id || '0');
 
     // Only allow users to delete their own account, or admins to delete anyone
     if (userId !== currentUserId && req.user?.role !== 'admin') {
@@ -106,12 +113,14 @@ export const deleteUser = async (
       throw error;
     }
 
-    const user = await User.findByIdAndDelete(userId);
+    const user = await User.findByPk(userId);
     if (!user) {
       const error = new Error('User not found') as AppError;
       error.statusCode = 404;
       throw error;
     }
+
+    await user.destroy();
 
     res.status(200).json({
       success: true,
@@ -121,4 +130,3 @@ export const deleteUser = async (
     next(error);
   }
 };
-

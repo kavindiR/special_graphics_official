@@ -1,6 +1,8 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 // --- Global Constants and Styling ---
 const BG_COLOR = '#f8f8f8'; // Light background color
@@ -78,8 +80,9 @@ const SocialButton = ({ icon: Icon, text }: { icon: React.FC<React.SVGProps<SVGS
 );
 
 // --- Password Validation Logic ---
+// Note: Backend requires minimum 6 characters, frontend enforces stronger validation for better security
 const validatePassword = (password: string) => ({
-  isMinLength: password.length >= 8,
+  isMinLength: password.length >= 6, // Backend minimum
   isUppercase: /[A-Z]/.test(password),
   isLowercase: /[a-z]/.test(password),
   isNumber: /[0-9]/.test(password),
@@ -108,6 +111,8 @@ const ValidationRequirement = ({ isValid, text }: { isValid: boolean; text: stri
 // --- SIGN UP FORM COMPONENT ---
 // =========================================================================
 const SignUpForm = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
+  const { register } = useAuth();
+  const router = useRouter();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -115,6 +120,8 @@ const SignUpForm = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [validation, setValidation] = useState(validatePassword(''));
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Update validation status whenever password changes
   useEffect(() => {
@@ -126,12 +133,28 @@ const SignUpForm = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
   const isPasswordValid = Object.values(validation).every(v => v);
   const isFormValid = isBasicFormFilled && isPasswordValid;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
+    setError(null);
+    
     if (isFormValid) {
-      console.log('Sign Up Successful:', { firstName, lastName, email, password });
-      // In a real app, you would call your API here
+      setLoading(true);
+      try {
+        const fullName = `${firstName} ${lastName}`.trim();
+        const result = await register(fullName, email, password);
+        
+        if (result.success) {
+          // Success - redirect to home page
+          router.push('/');
+        } else {
+          setError(result.error || 'Registration failed. Please try again.');
+        }
+      } catch (err) {
+        setError('An unexpected error occurred. Please try again.');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -149,6 +172,13 @@ const SignUpForm = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
         <span className="flex-shrink mx-4 text-gray-500 text-sm">Or, create an account with email.</span>
         <div className="flex-grow border-t border-gray-300"></div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-600">{error}</p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         {/* Name Fields */}
@@ -222,7 +252,7 @@ const SignUpForm = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
         {/* Password Validation Requirements (Visible if typing) */}
         {password.length > 0 && (
           <div className="grid grid-cols-2 gap-y-2 text-xs mb-6">
-            <ValidationRequirement isValid={validation.isMinLength} text="8 characters minimum" />
+            <ValidationRequirement isValid={validation.isMinLength} text="6 characters minimum" />
             <ValidationRequirement isValid={validation.isUppercase} text="1 uppercase letter" />
             <ValidationRequirement isValid={validation.isLowercase} text="1 lowercase letter" />
             <ValidationRequirement isValid={validation.isNumber} text="1 number" />
@@ -239,11 +269,18 @@ const SignUpForm = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
         {/* Create Account Button */}
         <button
           type="submit"
-          disabled={!isFormValid}
-          className={`w-full py-3 rounded-lg text-sm font-medium transition-opacity duration-200 ${!isFormValid ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={!isFormValid || loading}
+          className={`w-full py-3 rounded-lg text-sm font-medium transition-opacity duration-200 flex items-center justify-center ${!isFormValid || loading ? 'opacity-50 cursor-not-allowed' : ''}`}
           style={{ backgroundColor: DARK_COLOR, color: 'white' }}
         >
-          Create an account
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Creating account...
+            </>
+          ) : (
+            'Create an account'
+          )}
         </button>
       </form>
 
@@ -262,26 +299,38 @@ const SignUpForm = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
 // --- SIGN IN FORM COMPONENT ---
 // =========================================================================
 const SignInForm = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
+  const { login } = useAuth();
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [validation, setValidation] = useState(validatePassword(''));
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Live password requirement check (matching Sign Up page rules)
-  useEffect(() => {
-    setValidation(validatePassword(password));
-  }, [password]);
-
-  const isPasswordValid = Object.values(validation).every(v => v);
   const isFormValid = email && password;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
+    setError(null);
+    
     if (isFormValid) {
-      console.log('Sign In Successful:', { email, password });
-      // In a real app, you would call your API here
+      setLoading(true);
+      try {
+        const result = await login(email, password);
+        
+        if (result.success) {
+          // Success - redirect to home page
+          router.push('/');
+        } else {
+          setError(result.error || 'Login failed. Please check your credentials.');
+        }
+      } catch (err) {
+        setError('An unexpected error occurred. Please try again.');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -299,6 +348,13 @@ const SignInForm = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
         <span className="flex-shrink mx-4 text-gray-500 text-sm">Or, sign in with email.</span>
         <div className="flex-grow border-t border-gray-300"></div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-600">{error}</p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         {/* Email Address */}
@@ -328,7 +384,7 @@ const SignInForm = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
               type={isPasswordVisible ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className={`w-full py-2 border-b-2 bg-transparent focus:outline-none focus:border-black ${submitted && password.length > 0 && !isPasswordValid ? 'border-red-500' : 'border-gray-300'}`}
+              className={`w-full py-2 border-b-2 bg-transparent focus:outline-none focus:border-black ${submitted && !password ? 'border-red-500' : 'border-gray-300'}`}
               style={{ color: DARK_COLOR }}
             />
             <button
@@ -341,28 +397,16 @@ const SignInForm = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
           </div>
         </div>
 
-        {/* Password Validation Requirements (Added to Sign In for consistency/help) */}
-        {password.length > 0 && (
-          <div className="grid grid-cols-2 gap-y-2 text-xs mb-6">
-            <ValidationRequirement isValid={validation.isMinLength} text="8 characters minimum" />
-            <ValidationRequirement isValid={validation.isUppercase} text="1 uppercase letter" />
-            <ValidationRequirement isValid={validation.isLowercase} text="1 lowercase letter" />
-            <ValidationRequirement isValid={validation.isNumber} text="1 number" />
-          </div>
-        )}
-        {password.length === 0 ? (
-          <div className="flex justify-between items-center text-sm mb-6">
-            <label className="flex items-center text-xs text-gray-600">
-              <input type="checkbox" className="mr-2" />
-              Remember me
-            </label>
-            <button type="button" className="text-xs underline text-gray-600 hover:text-black transition-colors">
-              Forgot password?
-            </button>
-          </div>
-        ) : (
-          <div className="h-10 mb-6"></div>
-        )}
+        {/* Remember me and Forgot password */}
+        <div className="flex justify-between items-center text-sm mb-6">
+          <label className="flex items-center text-xs text-gray-600">
+            <input type="checkbox" className="mr-2" />
+            Remember me
+          </label>
+          <button type="button" className="text-xs underline text-gray-600 hover:text-black transition-colors">
+            Forgot password?
+          </button>
+        </div>
 
 
         {/* Terms and Conditions */}
@@ -373,11 +417,18 @@ const SignInForm = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
         {/* Sign In Button (Outlined/Lightly Styled) */}
         <button
           type="submit"
-          disabled={!isFormValid}
-          className={`w-full py-3 rounded-lg text-sm font-medium transition-all duration-200 border ${!isFormValid ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={!isFormValid || loading}
+          className={`w-full py-3 rounded-lg text-sm font-medium transition-all duration-200 border flex items-center justify-center ${!isFormValid || loading ? 'opacity-50 cursor-not-allowed' : ''}`}
           style={{ borderColor: DARK_COLOR, color: DARK_COLOR, backgroundColor: 'white' }}
         >
-          Sign In
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Signing in...
+            </>
+          ) : (
+            'Sign In'
+          )}
         </button>
       </form>
 

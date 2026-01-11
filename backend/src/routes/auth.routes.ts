@@ -4,9 +4,12 @@ import {
   register,
   login,
   getCurrentUser,
-  updateProfile
+  updateProfile,
+  logout,
+  refreshToken
 } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth';
+import { loginRateLimiter } from '../middleware/rateLimiter';
 
 const router = express.Router();
 
@@ -24,7 +27,9 @@ const loginValidation = [
 
 // Routes
 router.post('/register', registerValidation, register);
-router.post('/login', loginValidation, login);
+router.post('/login', loginRateLimiter, loginValidation, login);
+router.post('/logout', authenticate, logout);
+router.post('/refresh-token', authenticate, refreshToken);
 router.get('/me', authenticate, getCurrentUser);
 router.put('/profile', authenticate, updateProfile);
 

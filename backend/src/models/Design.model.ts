@@ -1,71 +1,152 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import { DataTypes, Model, Optional } from 'sequelize';
+import { sequelize } from '../config/database';
+import User from './User.model';
 
-export interface IDesign extends Document {
+export interface DesignAttributes {
+  id: number;
   title: string;
-  designer: mongoose.Types.ObjectId;
+  designerId: number;
   designerName: string;
   description: string;
   image: string;
   tags: string[];
   tools: string;
   likes: number;
-  likedBy: mongoose.Types.ObjectId[];
-  createdAt: Date;
-  updatedAt: Date;
+  likedBy: number[];
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-const DesignSchema: Schema = new Schema(
+export interface DesignCreationAttributes extends Optional<DesignAttributes, 'id' | 'likes' | 'likedBy' | 'createdAt' | 'updatedAt'> {}
+
+export class Design extends Model<DesignAttributes, DesignCreationAttributes> implements DesignAttributes {
+  public id!: number;
+  public title!: string;
+  public designerId!: number;
+  public designerName!: string;
+  public description!: string;
+  public image!: string;
+  public tags!: string[];
+  public tools!: string;
+  public likes!: number;
+  public likedBy!: number[];
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+}
+
+Design.init(
   {
-    title: {
-      type: String,
-      required: [true, 'Title is required'],
-      trim: true,
-      maxlength: [200, 'Title cannot exceed 200 characters']
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true
     },
-    designer: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
+    title: {
+      type: DataTypes.STRING(200),
+      allowNull: false,
+      validate: {
+        notEmpty: {
+          msg: 'Title is required'
+        },
+        len: {
+          args: [1, 200],
+          msg: 'Title cannot exceed 200 characters'
+        }
+      }
+    },
+    designerId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: User,
+        key: 'id'
+      },
+      onDelete: 'CASCADE'
     },
     designerName: {
-      type: String,
-      required: true,
-      trim: true
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        notEmpty: {
+          msg: 'Designer name is required'
+        }
+      }
     },
     description: {
-      type: String,
-      required: [true, 'Description is required'],
-      maxlength: [1000, 'Description cannot exceed 1000 characters']
+      type: DataTypes.TEXT,
+      allowNull: false,
+      validate: {
+        notEmpty: {
+          msg: 'Description is required'
+        },
+        len: {
+          args: [1, 1000],
+          msg: 'Description cannot exceed 1000 characters'
+        }
+      }
     },
     image: {
-      type: String,
-      required: [true, 'Image URL is required']
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        notEmpty: {
+          msg: 'Image URL is required'
+        },
+        isUrl: {
+          msg: 'Please provide a valid image URL'
+        }
+      }
     },
-    tags: [{
-      type: String,
-      trim: true
-    }],
+    tags: {
+      type: DataTypes.ARRAY(DataTypes.STRING),
+      allowNull: true,
+      defaultValue: []
+    },
     tools: {
-      type: String,
-      required: true,
-      trim: true
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        notEmpty: {
+          msg: 'Tools is required'
+        }
+      }
     },
     likes: {
-      type: Number,
-      default: 0
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: false
     },
-    likedBy: [{
-      type: Schema.Types.ObjectId,
-      ref: 'User'
-    }]
+    likedBy: {
+      type: DataTypes.ARRAY(DataTypes.INTEGER),
+      allowNull: true,
+      defaultValue: []
+    }
   },
   {
-    timestamps: true
+    sequelize,
+    tableName: 'designs',
+    timestamps: true,
+    indexes: [
+      {
+        fields: ['designerId']
+      },
+      {
+        using: 'GIN',
+        fields: ['tags']
+      }
+    ]
   }
 );
 
-// Index for search functionality
-DesignSchema.index({ title: 'text', description: 'text', tags: 'text' });
+// Define associations
+Design.belongsTo(User, {
+  foreignKey: 'designerId',
+  as: 'designer'
+});
 
-export default mongoose.model<IDesign>('Design', DesignSchema);
+User.hasMany(Design, {
+  foreignKey: 'designerId',
+  as: 'designs'
+});
 
+export default Design;

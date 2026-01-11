@@ -3,6 +3,7 @@ import { Poppins, Great_Vibes } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import AuthProviderWrapper from "@/providers/AuthProvider";
 
 const poppins = Poppins({
   weight: ["300", "400", "500", "600", "700"],
@@ -31,9 +32,11 @@ export default function RootLayout({
       <body
         className={`${poppins.variable} ${greatVibes.variable} antialiased`}
       >
-        <Header />
-        {children}
-        <Footer />
+        <AuthProviderWrapper>
+          <Header />
+          {children}
+          <Footer />
+        </AuthProviderWrapper>
       </body>
     </html>
   );
