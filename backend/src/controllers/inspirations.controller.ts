@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import Design from '../models/Design.model';
+import { AppDataSource } from '../config/database';
+import { Design } from '../entities/Design.entity';
+import { User } from '../entities/User.entity';
 import { AppError } from '../middleware/errorHandler';
 
 // Get all inspirations (designs)
@@ -13,13 +15,14 @@ export const getAllInspirations = async (
     const limit = parseInt(req.query.limit as string) || 20;
     const skip = (page - 1) * limit;
 
-    const designs = await Design.find()
-      .populate('designer', 'name avatar')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Design.countDocuments();
+    const designRepository = AppDataSource.getRepository(Design);
+    
+    const [designs, total] = await designRepository.findAndCount({
+      relations: ['designer'],
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit
+    });
 
     res.status(200).json({
       success: true,
@@ -45,8 +48,11 @@ export const getInspirationById = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const design = await Design.findById(req.params.id)
-      .populate('designer', 'name avatar bio');
+    const designRepository = AppDataSource.getRepository(Design);
+    const design = await designRepository.findOne({
+      where: { id: req.params.id },
+      relations: ['designer']
+    });
 
     if (!design) {
       const error = new Error('Design not found') as AppError;
@@ -75,35 +81,37 @@ export const searchInspirations = async (
     const limit = parseInt(req.query.limit as string) || 20;
     const skip = (page - 1) * limit;
 
-    let query: any = {};
+    const designRepository = AppDataSource.getRepository(Design);
+    const queryBuilder = designRepository
+      .createQueryBuilder('design')
+      .leftJoinAndSelect('design.designer', 'designer');
 
     // Text search
     if (q) {
-      query.$or = [
-        { title: { $regex: q as string, $options: 'i' } },
-        { description: { $regex: q as string, $options: 'i' } },
-        { tags: { $in: [(q as string).toLowerCase()] } }
-      ];
+      const searchTerm = `%${q}%`;
+      queryBuilder.where(
+        '(design.title ILIKE :searchTerm OR design.description ILIKE :searchTerm OR :searchTag = ANY(design.tags))',
+        { searchTerm, searchTag: (q as string).toLowerCase() }
+      );
     }
 
     // Tag filter
     if (tags) {
       const tagArray = Array.isArray(tags) ? tags : [tags];
-      query.tags = { $in: tagArray };
+      queryBuilder.andWhere('design.tags && :tags', { tags: tagArray });
     }
 
     // Tools filter
     if (tools) {
-      query.tools = { $regex: tools as string, $options: 'i' };
+      queryBuilder.andWhere('design.tools ILIKE :tools', { tools: `%${tools}%` });
     }
 
-    const designs = await Design.find(query)
-      .populate('designer', 'name avatar')
-      .sort({ createdAt: -1 })
+    queryBuilder
+      .orderBy('design.createdAt', 'DESC')
       .skip(skip)
-      .limit(limit);
+      .take(limit);
 
-    const total = await Design.countDocuments(query);
+    const [designs, total] = await queryBuilder.getManyAndCount();
 
     res.status(200).json({
       success: true,
@@ -138,31 +146,46 @@ export const toggleLike = async (
       throw error;
     }
 
-    const design = await Design.findById(designId);
+    const designRepository = AppDataSource.getRepository(Design);
+    const userRepository = AppDataSource.getRepository(User);
+    
+    const design = await designRepository.findOne({
+      where: { id: designId },
+      relations: ['likedBy']
+    });
+
     if (!design) {
       const error = new Error('Design not found') as AppError;
       error.statusCode = 404;
       throw error;
     }
 
-    const likedIndex = design.likedBy.indexOf(userId);
-    if (likedIndex > -1) {
-      // Unlike
-      design.likedBy.splice(likedIndex, 1);
+    const user = await userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      const error = new Error('User not found') as AppError;
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const isLiked = design.likedBy.some(u => u.id === userId);
+    
+    if (isLiked) {
+      // Unlike - remove user from likedBy array
+      design.likedBy = design.likedBy.filter(u => u.id !== userId);
       design.likes = Math.max(0, design.likes - 1);
     } else {
-      // Like
-      design.likedBy.push(userId);
+      // Like - add user to likedBy array
+      design.likedBy.push(user);
       design.likes += 1;
     }
 
-    await design.save();
+    await designRepository.save(design);
 
     res.status(200).json({
       success: true,
       data: {
         design,
-        isLiked: likedIndex === -1
+        isLiked: !isLiked
       }
     });
   } catch (error) {

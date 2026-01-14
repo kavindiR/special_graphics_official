@@ -1,15 +1,20 @@
 import { Response, NextFunction } from 'express';
-import User from '../models/User.model';
+import { AppDataSource } from '../config/database';
+import { User } from '../entities/User.entity';
 import { AuthRequest, AppError } from '../middleware/auth';
 
 // Get all users
 export const getAllUsers = async (
-  req: AuthRequest,
+  _req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const users = await User.find().select('-password').sort({ createdAt: -1 });
+    const userRepository = AppDataSource.getRepository(User);
+    const users = await userRepository.find({
+      select: ['id', 'name', 'email', 'role', 'avatar', 'bio', 'isVerified', 'createdAt', 'updatedAt'],
+      order: { createdAt: 'DESC' }
+    });
 
     res.status(200).json({
       success: true,
@@ -27,7 +32,11 @@ export const getUserById = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const user = await User.findById(req.params.id).select('-password');
+    const userRepository = AppDataSource.getRepository(User);
+    const user = await userRepository.findOne({
+      where: { id: req.params.id },
+      select: ['id', 'name', 'email', 'role', 'avatar', 'bio', 'isVerified', 'createdAt', 'updatedAt']
+    });
 
     if (!user) {
       const error = new Error('User not found') as AppError;
@@ -62,17 +71,8 @@ export const updateUser = async (
       throw error;
     }
 
-    const updateData: any = {};
-    if (name) updateData.name = name;
-    if (bio !== undefined) updateData.bio = bio;
-    if (avatar) updateData.avatar = avatar;
-    if (role && req.user?.role === 'admin') updateData.role = role;
-
-    const user = await User.findByIdAndUpdate(
-      userId,
-      updateData,
-      { new: true, runValidators: true }
-    ).select('-password');
+    const userRepository = AppDataSource.getRepository(User);
+    const user = await userRepository.findOne({ where: { id: userId } });
 
     if (!user) {
       const error = new Error('User not found') as AppError;
@@ -80,9 +80,19 @@ export const updateUser = async (
       throw error;
     }
 
+    if (name) user.name = name;
+    if (bio !== undefined) user.bio = bio;
+    if (avatar) user.avatar = avatar;
+    if (role && req.user?.role === 'admin') user.role = role as any;
+
+    await userRepository.save(user);
+
+    // Remove password from response
+    const { password, ...userResponse } = user;
+
     res.status(200).json({
       success: true,
-      data: { user }
+      data: { user: userResponse }
     });
   } catch (error) {
     next(error);
@@ -106,12 +116,16 @@ export const deleteUser = async (
       throw error;
     }
 
-    const user = await User.findByIdAndDelete(userId);
+    const userRepository = AppDataSource.getRepository(User);
+    const user = await userRepository.findOne({ where: { id: userId } });
+
     if (!user) {
       const error = new Error('User not found') as AppError;
       error.statusCode = 404;
       throw error;
     }
+
+    await userRepository.remove(user);
 
     res.status(200).json({
       success: true,
@@ -121,4 +135,3 @@ export const deleteUser = async (
     next(error);
   }
 };
-

@@ -2,15 +2,22 @@ import { Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
-import User from '../models/User.model';
+import { AppDataSource } from '../config/database';
+import { User } from '../entities/User.entity';
 import { AuthRequest, AppError } from '../middleware/auth';
 
 // Generate JWT Token
 const generateToken = (id: string, email: string, role: string): string => {
+  const secret = process.env.JWT_SECRET || 'fallback-secret';
+  if (!secret || typeof secret !== 'string') {
+    throw new Error('JWT_SECRET is not configured');
+  }
+  const expiresIn = process.env.JWT_EXPIRE || '7d';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return jwt.sign(
     { id, email, role },
-    process.env.JWT_SECRET || 'fallback-secret',
-    { expiresIn: process.env.JWT_EXPIRE || '7d' }
+    secret,
+    { expiresIn: expiresIn as any }
   );
 };
 
@@ -30,8 +37,10 @@ export const register = async (
 
     const { name, email, password, role } = req.body;
 
+    const userRepository = AppDataSource.getRepository(User);
+
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await userRepository.findOne({ where: { email: email.toLowerCase() } });
     if (existingUser) {
       const error = new Error('User already exists') as AppError;
       error.statusCode = 400;
@@ -42,21 +51,23 @@ export const register = async (
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create user
-    const user = await User.create({
+    const user = userRepository.create({
       name,
-      email,
+      email: email.toLowerCase(),
       password: hashedPassword,
-      role: role || 'user'
+      role: (role || 'user') as any
     });
 
+    await userRepository.save(user);
+
     // Generate token
-    const token = generateToken(user._id.toString(), user.email, user.role);
+    const token = generateToken(user.id, user.email, user.role);
 
     res.status(201).json({
       success: true,
       data: {
         user: {
-          id: user._id,
+          id: user.id,
           name: user.name,
           email: user.email,
           role: user.role
@@ -85,8 +96,14 @@ export const login = async (
 
     const { email, password } = req.body;
 
-    // Find user
-    const user = await User.findOne({ email }).select('+password');
+    const userRepository = AppDataSource.getRepository(User);
+
+    // Find user with password
+    const user = await userRepository.findOne({
+      where: { email: email.toLowerCase() },
+      select: ['id', 'email', 'password', 'name', 'role', 'avatar', 'bio']
+    });
+
     if (!user) {
       const error = new Error('Invalid credentials') as AppError;
       error.statusCode = 401;
@@ -102,13 +119,13 @@ export const login = async (
     }
 
     // Generate token
-    const token = generateToken(user._id.toString(), user.email, user.role);
+    const token = generateToken(user.id, user.email, user.role);
 
     res.status(200).json({
       success: true,
       data: {
         user: {
-          id: user._id,
+          id: user.id,
           name: user.name,
           email: user.email,
           role: user.role,
@@ -130,7 +147,9 @@ export const getCurrentUser = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const user = await User.findById(req.user?.id);
+    const userRepository = AppDataSource.getRepository(User);
+    const user = await userRepository.findOne({ where: { id: req.user?.id } });
+    
     if (!user) {
       const error = new Error('User not found') as AppError;
       error.statusCode = 404;
@@ -156,17 +175,20 @@ export const updateProfile = async (
     const { name, bio, avatar } = req.body;
     const userId = req.user?.id;
 
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { name, bio, avatar },
-      { new: true, runValidators: true }
-    );
+    const userRepository = AppDataSource.getRepository(User);
+    const user = await userRepository.findOne({ where: { id: userId } });
 
     if (!user) {
       const error = new Error('User not found') as AppError;
       error.statusCode = 404;
       throw error;
     }
+
+    if (name) user.name = name;
+    if (bio !== undefined) user.bio = bio;
+    if (avatar !== undefined) user.avatar = avatar;
+
+    await userRepository.save(user);
 
     res.status(200).json({
       success: true,

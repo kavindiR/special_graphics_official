@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
-import Design from '../models/Design.model';
-import User from '../models/User.model';
+import { AppDataSource } from '../config/database';
+import { Design } from '../entities/Design.entity';
+import { User } from '../entities/User.entity';
 import { AuthRequest, AppError } from '../middleware/auth';
 
 // Create new design
@@ -19,23 +20,28 @@ export const createDesign = async (
       throw error;
     }
 
+    const userRepository = AppDataSource.getRepository(User);
+    const designRepository = AppDataSource.getRepository(Design);
+
     // Get user name for designerName
-    const user = await User.findById(userId);
+    const user = await userRepository.findOne({ where: { id: userId } });
     if (!user) {
       const error = new Error('User not found') as AppError;
       error.statusCode = 404;
       throw error;
     }
 
-    const design = await Design.create({
+    const design = designRepository.create({
       title,
       description,
       image,
       tags: Array.isArray(tags) ? tags : [],
       tools,
-      designer: userId,
+      designerId: userId,
       designerName: user.name
     });
+
+    await designRepository.save(design);
 
     res.status(201).json({
       success: true,
@@ -48,14 +54,16 @@ export const createDesign = async (
 
 // Get all designs
 export const getAllDesigns = async (
-  req: AuthRequest,
+  _req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const designs = await Design.find()
-      .populate('designer', 'name avatar')
-      .sort({ createdAt: -1 });
+    const designRepository = AppDataSource.getRepository(Design);
+    const designs = await designRepository.find({
+      relations: ['designer'],
+      order: { createdAt: 'DESC' }
+    });
 
     res.status(200).json({
       success: true,
@@ -73,8 +81,11 @@ export const getDesignById = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const design = await Design.findById(req.params.id)
-      .populate('designer', 'name avatar bio');
+    const designRepository = AppDataSource.getRepository(Design);
+    const design = await designRepository.findOne({
+      where: { id: req.params.id },
+      relations: ['designer']
+    });
 
     if (!design) {
       const error = new Error('Design not found') as AppError;
@@ -102,7 +113,12 @@ export const updateDesign = async (
     const userId = req.user?.id;
     const designId = req.params.id;
 
-    const design = await Design.findById(designId);
+    const designRepository = AppDataSource.getRepository(Design);
+    const design = await designRepository.findOne({
+      where: { id: designId },
+      relations: ['designer']
+    });
+
     if (!design) {
       const error = new Error('Design not found') as AppError;
       error.statusCode = 404;
@@ -110,19 +126,19 @@ export const updateDesign = async (
     }
 
     // Check if user owns the design or is admin
-    if (design.designer.toString() !== userId && req.user?.role !== 'admin') {
+    if (design.designerId !== userId && req.user?.role !== 'admin') {
       const error = new Error('Not authorized to update this design') as AppError;
       error.statusCode = 403;
       throw error;
     }
 
-    design.title = title || design.title;
-    design.description = description || design.description;
-    design.image = image || design.image;
-    design.tags = Array.isArray(tags) ? tags : design.tags;
-    design.tools = tools || design.tools;
+    if (title) design.title = title;
+    if (description) design.description = description;
+    if (image) design.image = image;
+    if (Array.isArray(tags)) design.tags = tags;
+    if (tools) design.tools = tools;
 
-    await design.save();
+    await designRepository.save(design);
 
     res.status(200).json({
       success: true,
@@ -143,7 +159,9 @@ export const deleteDesign = async (
     const userId = req.user?.id;
     const designId = req.params.id;
 
-    const design = await Design.findById(designId);
+    const designRepository = AppDataSource.getRepository(Design);
+    const design = await designRepository.findOne({ where: { id: designId } });
+
     if (!design) {
       const error = new Error('Design not found') as AppError;
       error.statusCode = 404;
@@ -151,13 +169,13 @@ export const deleteDesign = async (
     }
 
     // Check if user owns the design or is admin
-    if (design.designer.toString() !== userId && req.user?.role !== 'admin') {
+    if (design.designerId !== userId && req.user?.role !== 'admin') {
       const error = new Error('Not authorized to delete this design') as AppError;
       error.statusCode = 403;
       throw error;
     }
 
-    await Design.findByIdAndDelete(designId);
+    await designRepository.remove(design);
 
     res.status(200).json({
       success: true,
@@ -167,4 +185,3 @@ export const deleteDesign = async (
     next(error);
   }
 };
-

@@ -2,6 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { AppError } from './errorHandler';
 
+// Re-export AppError for convenience
+export { AppError } from './errorHandler';
+
 export interface AuthRequest extends Request {
   user?: {
     id: string;
@@ -12,7 +15,7 @@ export interface AuthRequest extends Request {
 
 export const authenticate = (
   req: AuthRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): void => {
   try {
@@ -22,15 +25,18 @@ export const authenticate = (
       throw new Error('Authentication token required');
     }
 
+    const secret = process.env.JWT_SECRET || 'fallback-secret';
+    if (!secret || typeof secret !== 'string') {
+      throw new Error('JWT_SECRET is not configured');
+    }
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET || 'fallback-secret'
+      secret
     ) as { id: string; email: string; role?: string };
 
     req.user = decoded;
     next();
-  } catch (error) {
-    const err = error as Error;
+  } catch (_error) {
     const appError = new Error('Invalid or expired token') as AppError;
     appError.statusCode = 401;
     next(appError);

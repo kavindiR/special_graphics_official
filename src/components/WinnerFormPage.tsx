@@ -239,6 +239,7 @@ export default function WinnerFormPage() {
                                         type="text"
                                         className={`border ${errors.state ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-sm px-4 py-3 text-xs focus:outline-none focus:border-black w-full transition-colors`}
                                     />
+                                    {errors.state && <span className="text-red-500 text-[10px]">{errors.state}</span>}
                                 </div>
 
                                 {/* City (With Validation) */}
@@ -260,6 +261,7 @@ export default function WinnerFormPage() {
                                         type="text"
                                         className={`border ${errors.zip ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-sm px-4 py-3 text-xs focus:outline-none focus:border-black w-full`}
                                     />
+                                    {errors.zip && <span className="text-red-500 text-[10px]">{errors.zip}</span>}
                                 </div>
 
                                 {/* Phone */}
@@ -273,6 +275,7 @@ export default function WinnerFormPage() {
                                             className={`flex-1 border ${errors.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-sm px-4 py-3 text-xs focus:outline-none focus:border-black w-full`}
                                         />
                                     </div>
+                                    {errors.phone && <span className="text-red-500 text-[10px]">{errors.phone}</span>}
                                 </div>
 
                                 {/* Checkbox */}
