@@ -1,7 +1,8 @@
 import { Response, NextFunction } from 'express';
 import Design from '../models/Design.model';
 import User from '../models/User.model';
-import { AuthRequest, AppError } from '../middleware/auth';
+import { AuthRequest } from '../middleware/auth';
+import { AppError } from '../middleware/errorHandler';
 
 // Create new design
 export const createDesign = async (

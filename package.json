@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3000",
+    "dev:3001": "next dev -p 3001",
     "build": "next build",
     "build:vercel": "next build",
     "build:github": "cross-env GITHUB_PAGES=true next build",

@@ -3,7 +3,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
 import User from '../models/User.model';
-import { AuthRequest, AppError } from '../middleware/auth';
+import { AuthRequest } from '../middleware/auth';
+import { AppError } from '../middleware/errorHandler';
 
 // Generate JWT Token
 const generateToken = (id: number | string, email: string, role: string): string => {
