@@ -11,8 +11,27 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 export default function AdminHeader() {
+  const { user, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
     <header className="h-16 bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
       <div className="h-full pl-14 lg:pl-6 pr-4 sm:pr-6 lg:px-8 flex items-center justify-between gap-4">
@@ -49,12 +68,12 @@ export default function AdminHeader() {
             <DropdownMenuTrigger className="flex items-center gap-2 sm:gap-3 p-1.5 hover:bg-gray-50 rounded-lg transition-colors outline-none focus:ring-2 focus:ring-gray-900/20">
               <Avatar className="w-8 h-8 sm:w-9 sm:h-9 ring-2 ring-gray-900/20">
                 <AvatarFallback className="bg-gray-900 text-white text-xs sm:text-sm font-semibold shadow-sm">
-                  AD
+                  {user ? getInitials(user.name) : 'AD'}
                 </AvatarFallback>
               </Avatar>
               <div className="hidden sm:block text-left">
-                <p className="text-sm font-semibold text-gray-900">Admin User</p>
-                <p className="text-xs text-gray-500 hidden md:block">admin@specialgraphics.com</p>
+                <p className="text-sm font-semibold text-gray-900">{user?.name || 'Admin User'}</p>
+                <p className="text-xs text-gray-500 hidden md:block">{user?.email || 'admin@specialgraphics.com'}</p>
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -69,7 +88,7 @@ export default function AdminHeader() {
                 <span>Settings</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600 cursor-pointer focus:text-red-600">
+              <DropdownMenuItem className="text-red-600 cursor-pointer focus:text-red-600" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>
@@ -78,6 +97,5 @@ export default function AdminHeader() {
         </div>
       </div>
     </header>
-  );
-}
+
 

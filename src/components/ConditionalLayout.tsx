@@ -14,7 +14,11 @@ export default function ConditionalLayout({
   const isAdminRoute = pathname?.startsWith('/adminpanel');
 
   if (isAdminRoute) {
-    return <>{children}</>;
+    return (
+      <AuthProviderWrapper>
+        {children}
+      </AuthProviderWrapper>
+    );
   }
 
   return (
