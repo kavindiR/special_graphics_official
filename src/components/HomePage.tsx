@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import {
     Search,
     ChevronRight,
@@ -11,6 +13,21 @@ import {
 import Hero from "@/components/Hero";
 
 export default function HomePage() {
+    const { user, isAuthenticated, loading } = useAuth();
+    const router = useRouter();
+
+    // Redirect authenticated users to their dashboards
+    useEffect(() => {
+        if (!loading && isAuthenticated && user) {
+            if (user.role === 'designer') {
+                router.push('/designer/dashboard');
+            } else if (user.role === 'client') {
+                router.push('/client/dashboard');
+            } else if (user.role === 'admin' || user.role === 'moderator') {
+                router.push('/adminpanel');
+            }
+        }
+    }, [user, isAuthenticated, loading, router]);
     // Carousel State
     const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -144,15 +161,14 @@ export default function HomePage() {
                             hundreds of businesses to bring their designs to life.
                         </p>
                         <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4 md:gap-6 pt-4">
-                            <button className="bg-[#333] hover:bg-black text-white px-6 py-3 rounded text-sm font-medium transition-colors">
-                                Logo & Branding Design
-                            </button>
-                            <a
-                                href="#"
-                                className="text-gray-600 hover:text-black font-medium text-sm"
-                            >
-                                Start Your Project Now
-                            </a>
+                            <Link href="/hire-designer">
+                                <button className="bg-[#333] hover:bg-black text-white px-6 py-3 rounded text-sm font-medium transition-colors">
+                                    Hire a Designer
+                                </button>
+                            </Link>
+                            <Link href="/start-contest" className="text-gray-600 hover:text-black font-medium text-sm">
+                                Start a Contest
+                            </Link>
                         </div>
                     </div>
                     <div className="md:w-1/2 relative">
@@ -257,15 +273,14 @@ export default function HomePage() {
                             hundreds of businesses to bring their designs to life.
                         </p>
                         <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4 md:gap-6 pt-4">
-                            <button className="bg-[#a35d8d] hover:bg-[#8e4a7a] text-white px-6 py-3 rounded text-sm font-medium transition-colors">
-                                Logo & Branding Design
-                            </button>
-                            <a
-                                href="#"
-                                className="text-gray-600 hover:text-black font-medium text-sm"
-                            >
-                                Start Your Project Now
-                            </a>
+                            <Link href="/hire-designer">
+                                <button className="bg-[#a35d8d] hover:bg-[#8e4a7a] text-white px-6 py-3 rounded text-sm font-medium transition-colors">
+                                    Hire a Designer
+                                </button>
+                            </Link>
+                            <Link href="/start-contest" className="text-gray-600 hover:text-black font-medium text-sm">
+                                Start a Contest
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -284,15 +299,14 @@ export default function HomePage() {
                             and rebrand with custom, professional design.
                         </p>
                         <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-4 md:gap-6 pt-4">
-                            <button className="bg-[#4285f4] hover:bg-[#3367d6] text-white px-8 py-3 rounded text-sm font-medium transition-colors">
-                                Showcase
-                            </button>
-                            <a
-                                href="#"
-                                className="text-gray-600 hover:text-black font-medium text-sm"
-                            >
-                                Start Your Brand
-                            </a>
+                            <Link href="/hire-designer">
+                                <button className="bg-[#4285f4] hover:bg-[#3367d6] text-white px-8 py-3 rounded text-sm font-medium transition-colors">
+                                    Hire a Designer
+                                </button>
+                            </Link>
+                            <Link href="/start-contest" className="text-gray-600 hover:text-black font-medium text-sm">
+                                Start a Contest
+                            </Link>
                         </div>
                     </div>
                     <div className="md:w-1/2 relative flex justify-center">

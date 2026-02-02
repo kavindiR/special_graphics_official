@@ -53,9 +53,9 @@ async function apiRequest<T>(
 ): Promise<ApiResponse<T>> {
   const token = getAuthToken();
   
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...(options.headers as Record<string, string> || {}),
   };
 
   if (token) {
@@ -68,26 +68,38 @@ async function apiRequest<T>(
       headers,
     });
 
-    const data = await response.json();
-
+    // Handle network errors gracefully
     if (!response.ok) {
-      return {
-        success: false,
-        error: {
-          message: data.error?.message || data.message || 'An error occurred',
-        },
-      };
+      try {
+        const data = await response.json();
+        return {
+          success: false,
+          error: {
+            message: data.error?.message || data.message || 'An error occurred',
+          },
+        };
+      } catch (parseError) {
+        return {
+          success: false,
+          error: {
+            message: 'Network error. Please check your connection.',
+          },
+        };
+      }
     }
+
+    const data = await response.json();
 
     return {
       success: true,
       ...data,
     };
   } catch (error) {
+    // Return a more user-friendly error message
     return {
       success: false,
       error: {
-        message: error instanceof Error ? error.message : 'Network error occurred',
+        message: 'Network error. Please check your connection.',
       },
     };
   }

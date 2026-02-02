@@ -19,11 +19,13 @@ export default function AdminProtected({ children }: AdminProtectedProps) {
       // Check if user is authenticated and has admin role
       if (!isAuthenticated || !user) {
         router.push('/auth');
-      } else if (user.role !== 'admin' && user.role !== 'moderator') {
-        router.push('/');
-      } else {
-        setIsAuthorized(true);
+        return;
       }
+      if (user.role !== 'admin' && user.role !== 'moderator') {
+        router.push('/');
+        return;
+      }
+      setIsAuthorized(true);
     }
   }, [loading, isAuthenticated, user, router]);
 

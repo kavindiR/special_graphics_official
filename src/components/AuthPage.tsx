@@ -117,11 +117,23 @@ const SignUpForm = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [userType, setUserType] = useState<'designer' | 'client' | null>(null);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [validation, setValidation] = useState(validatePassword(''));
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Check URL parameters for user type from onboarding
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const typeParam = params.get('type');
+      if (typeParam === 'designer' || typeParam === 'client') {
+        setUserType(typeParam);
+      }
+    }
+  }, []);
 
   // Update validation status whenever password changes
   useEffect(() => {
@@ -129,7 +141,7 @@ const SignUpForm = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
   }, [password]);
 
   // Check if all necessary fields are filled (not including password validation)
-  const isBasicFormFilled = firstName && lastName && email && password;
+  const isBasicFormFilled = firstName && lastName && email && password && userType;
   const isPasswordValid = Object.values(validation).every(v => v);
   const isFormValid = isBasicFormFilled && isPasswordValid;
 
@@ -142,11 +154,25 @@ const SignUpForm = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
       setLoading(true);
       try {
         const fullName = `${firstName} ${lastName}`.trim();
-        const result = await register(fullName, email, password);
+        const result = await register(fullName, email, password, userType || undefined);
         
         if (result.success) {
-          // Success - redirect to home page
-          router.push('/');
+          // Success - redirect based on user role
+          const storedUser = localStorage.getItem('user');
+          if (storedUser) {
+            const user = JSON.parse(storedUser);
+            if (user.role === 'designer') {
+              router.push('/designer/dashboard');
+            } else if (user.role === 'client') {
+              router.push('/client/dashboard');
+            } else if (user.role === 'admin' || user.role === 'moderator') {
+              router.push('/adminpanel');
+            } else {
+              router.push('/');
+            }
+          } else {
+            router.push('/');
+          }
         } else {
           setError(result.error || 'Registration failed. Please try again.');
         }
@@ -171,6 +197,42 @@ const SignUpForm = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
         <div className="flex-grow border-t border-gray-300"></div>
         <span className="flex-shrink mx-4 text-gray-500 text-sm">Or, create an account with email.</span>
         <div className="flex-grow border-t border-gray-300"></div>
+      </div>
+
+      {/* User Type Selection */}
+      <div className="mb-6">
+        <label className="text-sm font-medium block mb-3" style={{ color: DARK_COLOR }}>
+          I am a...
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setUserType('designer')}
+            className={`py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 border-2 ${
+              userType === 'designer'
+                ? 'border-black bg-black text-white'
+                : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+            }`}
+          >
+            I'm a Designer
+          </button>
+          <button
+            type="button"
+            onClick={() => setUserType('client')}
+            className={`py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 border-2 ${
+              userType === 'client'
+                ? 'border-black bg-black text-white'
+                : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+            }`}
+          >
+            I Need Something Designed
+          </button>
+        </div>
+        {submitted && !userType && (
+          <p className="text-xs mt-2" style={{ color: RED_COLOR }}>
+            Please select your account type
+          </p>
+        )}
       </div>
 
       {/* Error Message */}
@@ -321,8 +383,22 @@ const SignInForm = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
         const result = await login(email, password);
         
         if (result.success) {
-          // Success - redirect to home page
-          router.push('/');
+          // Redirect based on user role
+          const storedUser = localStorage.getItem('user');
+          if (storedUser) {
+            const user = JSON.parse(storedUser);
+            if (user.role === 'designer') {
+              router.push('/designer/dashboard');
+            } else if (user.role === 'client') {
+              router.push('/client/dashboard');
+            } else if (user.role === 'admin' || user.role === 'moderator') {
+              router.push('/adminpanel');
+            } else {
+              router.push('/');
+            }
+          } else {
+            router.push('/');
+          }
         } else {
           setError(result.error || 'Login failed. Please check your credentials.');
         }
@@ -338,10 +414,8 @@ const SignInForm = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
     <div className="w-full">
       <h2 className="text-2xl font-semibold mb-6 text-center" style={{ color: DARK_COLOR }}>Welcome Back</h2>
 
-      {/* Social Login Buttons (Using corrected colored icons) */}
+      {/* Social Login Buttons */}
       <SocialButton icon={GoogleIcon} text="Login with Google" />
-      <SocialButton icon={FacebookIcon} text="Login with Facebook" />
-      <SocialButton icon={AppleIcon} text="Login with Apple" />
 
       <div className="flex items-center my-6">
         <div className="flex-grow border-t border-gray-300"></div>
@@ -451,7 +525,18 @@ const SignInForm = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
 // --- MAIN APPLICATION ENTRY POINT (ROUTING LOGIC) ---
 // =========================================================================
 const App = () => {
-  const [page, setPage] = useState('signin'); // 'signin' or 'signup'
+  // Check if coming from onboarding (has type parameter) - show signup
+  const [page, setPage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const typeParam = params.get('type');
+      const modeParam = params.get('mode');
+      if (typeParam || modeParam === 'register') {
+        return 'signup';
+      }
+    }
+    return 'signin';
+  });
 
   // Load the custom font using a standard link element - still needed for text elements
   const fontLink = (

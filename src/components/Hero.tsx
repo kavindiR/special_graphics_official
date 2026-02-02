@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Hero() {
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -64,9 +65,18 @@ export default function Hero() {
                     <span className="bg-white/10 backdrop-blur-sm px-3 py-1 rounded text-yellow-100 border border-yellow-500/30">Package Design</span>
                 </div>
 
-                <button className="bg-[#ff00cc] hover:bg-[#d900ad] text-white font-bold py-3 px-8 md:py-4 md:px-10 rounded shadow-[0_0_20px_rgba(255,0,204,0.4)] transition-all cursor-pointer">
-                    Hire Us Now!
-                </button>
+                <div className="flex flex-col sm:flex-row gap-4">
+                    <Link href="/hire-designer">
+                        <button className="bg-[#ff00cc] hover:bg-[#d900ad] text-white font-bold py-3 px-8 md:py-4 md:px-10 rounded shadow-[0_0_20px_rgba(255,0,204,0.4)] transition-all cursor-pointer">
+                            Hire a Designer
+                        </button>
+                    </Link>
+                    <Link href="/start-contest">
+                        <button className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white font-bold py-3 px-8 md:py-4 md:px-10 rounded border border-white/30 transition-all cursor-pointer">
+                            Start a Contest
+                        </button>
+                    </Link>
+                </div>
             </div>
 
             {/* Decorative Wave Bottom */}
